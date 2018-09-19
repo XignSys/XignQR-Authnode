@@ -40,3 +40,7 @@ ForgeRock does not warrant, guarantee or make any representations regarding the 
 ForgeRock shall not be liable for any direct, indirect or consequential damages or costs of any type arising out of any action taken by you or others related to the sample code.
 
 [forgerock_platform]: https://www.forgerock.com/platform/  
+
+# XignQR-Authnode
+ForgeRock Integration with XignQR
+
