@@ -5,6 +5,8 @@
  */
 package com.xign.forgerock;
 
+import com.xign.forgerock.util.Util;
+import com.xign.forgerock.exception.XignTokenException;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -73,7 +75,6 @@ public class TokenFetcherClient implements ResponseHandler<JsonObject> {
     private X509Certificate httpsTrust = null;
     private CloseableHttpClient httpClient;
     private final JsonParser PARSER = new JsonParser();
-    private final Gson GSON = new Gson();
 
     public TokenFetcherClient(String configPath, X509Certificate httpsTrust, boolean useProxy) throws XignTokenException {
 
@@ -223,117 +224,7 @@ public class TokenFetcherClient implements ResponseHandler<JsonObject> {
             throw new XignTokenException("error executing token request");
         }
 
-        return processTokenResponse(o);
-    }
-
-    private JWTClaims processTokenResponse(JsonObject tokenResponse) throws XignTokenException {
-
-        if (tokenResponse.has("error")) {
-            throw new XignTokenException("received error response :" + tokenResponse.get("error").getAsString());
-        }
-
-        ECDHDecrypter decrypter = null;
-        try {
-            decrypter = new ECDHDecrypter((ECPrivateKey) keyStore.getKey(keyAlias, keyPassword.toCharArray()));
-        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException | JOSEException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error building decrypter");
-        }catch(Exception ex){
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error building decrypter");
-        }
-
-        JWEObject reqObject;
-        try {
-            reqObject = JWEObject.parse(tokenResponse.get("id_token").getAsString());
-        } catch (ParseException ex) {
-            System.err.println(ex.getMessage());
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error parsing idtoken jwe");
-        }
-
-        byte[] dec;
-        try {
-            dec = decrypter.decrypt(reqObject.getHeader(), null, reqObject.getIV(), reqObject.getCipherText(), reqObject.getAuthTag());
-        } catch (JOSEException ex) {
-            System.err.println(ex.getMessage());
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error decrypting idtoken");
-        }
-
-        JWSObject reqJws;
-        try {
-            String decrypted = new String(dec);
-            reqJws = JWSObject.parse(decrypted);
-        } catch (ParseException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error parsing idtoken jws");
-        }
-
-        ECDSAVerifier verifier;
-        try {
-            verifier = new ECDSAVerifier((ECPublicKey) trustStore.getCertificate(trustAlias).getPublicKey());
-        } catch (KeyStoreException | JOSEException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error building verifier");
-        }
-
-        boolean verified;
-        try {
-            verified = verifier.verify(reqJws.getHeader(), reqJws.getSigningInput(), reqJws.getSignature());
-        } catch (JOSEException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error verifying idtoken jws");
-        }
-
-        if (!verified) {
-            throw new XignTokenException("jws is not verified!");
-        }
-
-        String jClaimsString = reqJws.getPayload().toString();
-        JWTClaims claims = GSON.fromJson(jClaimsString, JWTClaims.class);
-        try {
-
-            if (claims.getTransaction() != null) {
-                JWSObject transactionJws = JWSObject.parse(claims.getTransaction());
-                List<com.nimbusds.jose.util.Base64> chain = transactionJws.getHeader().getX509CertChain();
-                X509Certificate c = validateCertificateChain(chain);
-                verifier = new ECDSAVerifier((ECPublicKey) c.getPublicKey());
-                boolean transactionVerified = verifier.verify(transactionJws.getHeader(), transactionJws.getSigningInput(), transactionJws.getSignature());
-                if (!transactionVerified) {
-                    throw new XignTokenException("transaction could not be verified");
-                }
-            }
-        } catch (ParseException | JOSEException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error parsing transaction jws");
-        }
-
-        return claims;
-    }
-
-    private X509Certificate validateCertificateChain(List<com.nimbusds.jose.util.Base64> chain) throws XignTokenException {
-        CertificateFactory cf = null;
-        try {
-            cf = CertificateFactory.getInstance("X.509");
-            X509Certificate current = null;
-            X509Certificate next = null;
-            for (int i = 0; i < chain.size(); i++) {
-                if ((i + 1) == (chain.size() - 1)) {
-                    break;
-                }
-                current = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(chain.get(i).decode()));
-                next = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(chain.get(i + 1).decode()));
-                current.verify(next.getPublicKey());
-            }
-
-            return (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(chain.get(0).decode()));
-        } catch (NoSuchAlgorithmException | InvalidKeyException
-                | NoSuchProviderException | SignatureException | CertificateException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("certificate chain is invalid");
-        }
-
+        return Util.processTokenResponse(o, keyStore, keyAlias, keyPassword, trustStore, trustAlias);
     }
 
 }

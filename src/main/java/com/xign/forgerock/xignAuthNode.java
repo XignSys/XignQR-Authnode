@@ -15,6 +15,7 @@
  */
 package com.xign.forgerock;
 
+import com.xign.forgerock.exception.XignTokenException;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.authentication.callbacks.HiddenValueCallback;
@@ -24,9 +25,13 @@ import com.sun.identity.shared.debug.Debug;
 import com.xign.api.json.JWTClaims;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.forgerock.openam.auth.node.api.*;
@@ -48,8 +53,10 @@ public class xignAuthNode extends AbstractDecisionNode {
 
     private final Config config;
     private final CoreWrapper coreWrapper;
-    private final static String DEBUG_FILE = "xignAuthNode";
+    private final static String DEBUG_FILE = "XignQR";
     protected Debug debug = Debug.getInstance(DEBUG_FILE);
+    private final String redirectUri, clientId, managerUrl;
+    private final InputStream propertiesInput;
 
     /**
      * Configuration for the node.
@@ -57,16 +64,11 @@ public class xignAuthNode extends AbstractDecisionNode {
     public interface Config {
 
         @Attribute(order = 100)
-        String clientId();
+        String pathToXignConfig();
 
         @Attribute(order = 200)
-        String redirectUri();
+        Map<String, String> mapping();
 
-        @Attribute(order = 300)
-        String managerUrl();
-
-        @Attribute(order = 400)
-        String pathToXignConfig();
     }
 
     /**
@@ -79,12 +81,41 @@ public class xignAuthNode extends AbstractDecisionNode {
     public xignAuthNode(@Assisted Config config, CoreWrapper coreWrapper) throws NodeProcessException {
         this.config = config;
         this.coreWrapper = coreWrapper;
+
+        // read properties file
+        try {
+            propertiesInput = new FileInputStream(config.pathToXignConfig());
+        } catch (FileNotFoundException ex) {
+            debug.error(ex.getMessage());
+            throw new NodeProcessException(ex.getMessage());
+        }
+
+        Properties properties = new Properties();
+        try {
+            properties.load(propertiesInput);
+        } catch (IOException ex) {
+            debug.error(ex.getMessage());
+            throw new NodeProcessException("error loading config file");
+        }
+
+        try {
+            propertiesInput.close();
+        } catch (IOException ex) {
+            debug.error(ex.getMessage());
+        }
+
+        // openid connect redirect uri
+        redirectUri = properties.getProperty("client.redirect_uri");
+
+        clientId = properties.getProperty("client.id");
+
+        // where to connect for retrieval of qrcode in JS
+        managerUrl = properties.getProperty("manager.url.token").replace("/token", "");
     }
 
     @Override
     public Action process(TreeContext context) throws NodeProcessException {
-        
-        
+
         String xignInScript = "if (document.readyState !== 'loading') {\n"
                 + "    callback();\n"
                 + "\n"
@@ -104,11 +135,11 @@ public class xignAuthNode extends AbstractDecisionNode {
                 + "    let loginContainer = document.getElementById(\"content\");\n"
                 + "    let loginButton = loginContainer.firstChild;\n"
                 + "    loginContainer.insertBefore(xignDivTag, loginButton);\n"
-                + "    loginButton.style.display = \"none\" \n"
+                + "    document.getElementById(\"loginButton_0\").style.display = \"none\" \n"
                 + "\n"
                 + "    let config = {\n"
-                + "        redirect_uri: \"" + config.redirectUri() + "\",\n"
-                + "        client_id: \"" + config.clientId() + "\",\n"
+                + "        redirect_uri: \"" + redirectUri + "\",\n"
+                + "        client_id: \"" + clientId + "\",\n"
                 + "        userinfo_selector: {\n"
                 + "            nickname: 1,\n"
                 + "            email: 1\n"
@@ -120,7 +151,7 @@ public class xignAuthNode extends AbstractDecisionNode {
                 + "}\n"
                 + "\n"
                 + "function XignINSSO(configuration) {\n"
-                + "    const XMGRURL = \"" + config.managerUrl() + "\";\n"
+                + "    const XMGRURL = \"" + managerUrl + "\";\n"
                 + "    const WSXMGRURL = XMGRURL.replace(\"http\", \"ws\");\n"
                 + "    const status_uri = XMGRURL + \"/sso\";\n"
                 + "    const xtag = document.getElementById(\"xign_tag\");\n"
@@ -450,58 +481,62 @@ public class xignAuthNode extends AbstractDecisionNode {
                 + "";
 
         Optional<HiddenValueCallback> result = context.getCallback(HiddenValueCallback.class);
-        if (result.isPresent()) {
+        if (result.isPresent()) { // triggered from javascript, attached to hidden field
             String username = null;
             URI redirect = null;
             try { // check if, URL-Syntax valid
                 redirect = new URI(result.get().getValue());
             } catch (URISyntaxException ex) {
                 debug.error(ex.getMessage());
-                Logger.getLogger(xignAuthNode.class.getName()).log(Level.SEVERE, null, ex);
                 throw new NodeProcessException("this is not an redirect uri");
             }
 
+            String code = null;
             // authorization code passed as query parameter, get it from redirect uri
-            String code = redirect.getQuery().split("=")[1];
-            
-            //load properties file (keys etc.)
-            FileInputStream fin = null;
+            String[] s = redirect.getQuery().split("&");
+            for (String s2 : s) {
+                if (s2.contains("code=")) {
+                    code = s2.split("=")[1];
+                }
+            }
+
+            if (code == null) {
+                return goTo(false).build();
+            }
+
+            // fetch token, decrypt and validate
+            InputStream fin = null;
             try {
                 fin = new FileInputStream(config.pathToXignConfig());
             } catch (FileNotFoundException ex) {
                 debug.error(ex.getMessage());
-                throw new NodeProcessException("error loading xign-properties");
+                throw new NodeProcessException(ex.getMessage());
             }
-            
-            // fetch token, decrypt and validate
+
             try {
                 TokenFetcherClient req = new TokenFetcherClient(fin, null, false);
                 JWTClaims claims = req.requestIdToken(code);
-                debug.message("token requested, id is: " + claims.getNickname());
                 username = claims.getNickname();
             } catch (XignTokenException ex) {
                 debug.error(ex.getMessage());
                 throw new NodeProcessException("error fetching IdToken");
             }
 
-            //check if identity exists with username
-            AMIdentity id = null;
             try {
-                id = coreWrapper.getIdentity(username, "/");
-            } catch (Exception e) {
-                System.err.println(e.getMessage());
-                return goTo(false).build();
+                fin.close();
+            } catch (IOException ex) {
+                debug.warning(ex.getMessage());
+            }
+
+            String mappingName = config.mapping().get(username);
+            debug.message("mapping username '" + username + "' to AM Identity '" + mappingName + "'");
+
+            if (mappingName == null) {
+                debug.error("no mapping for username " + username);
+                throw new NodeProcessException("no mapping for username " + username);
             }
             
-            if (id != null) { // exists, login user
-                debug.message("logging in user '" + id.getName()+"'");
-                JsonValue newSharedState = context.sharedState.copy();
-                newSharedState.put("username", username);
-                return goTo(true).replaceSharedState(newSharedState).build();
-            } else {
-                debug.error("user not known");
-                return goTo(false).build();
-            }
+            return makeDecision(mappingName, context);
 
         } else {
             ScriptTextOutputCallback scriptCallback
@@ -513,5 +548,26 @@ public class xignAuthNode extends AbstractDecisionNode {
             return send(callbacks).build();
         }
 
+    }
+
+    private Action makeDecision(String mappingName, TreeContext context) {
+        //check if identity exists with username
+        AMIdentity id = null;
+        try {
+            id = coreWrapper.getIdentity(mappingName, "/");
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            return goTo(false).build();
+        }
+
+        if (id != null) { // exists, login user
+            debug.message("logging in user '" + id.getName() + "'");
+            JsonValue newSharedState = context.sharedState.copy();
+            newSharedState.put("username", mappingName);
+            return goTo(true).replaceSharedState(newSharedState).build();
+        } else {
+            debug.error("user not known");
+            return goTo(false).build();
+        }
     }
 }

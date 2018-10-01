@@ -30,7 +30,7 @@
 
     <groupId>com.xign</groupId>
     <version>1.0.0-SNAPSHOT</version>    
-    <name>XignQRAuthNode</name>
+    <name>xignqr-authnode</name>
     <description>An Authentication Tree Node for ForgeRock's Identity Platform</description>
     
     <dependencies>
@@ -62,9 +62,14 @@
             <type>jar</type>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.xign.forgerock</groupId>
+            <artifactId>xign-authnode-common</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
     
-    <repositories>
+<!--    <repositories>
         <repository>
             <snapshots>
                 <enabled>false</enabled>
@@ -73,7 +78,7 @@
             <name>ForgeRock Private Release Repository</name>
             <url>http://maven.forgerock.org/repo/private-releases</url>
         </repository>
-    </repositories>
+    </repositories>-->
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
