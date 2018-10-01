@@ -26,10 +26,10 @@
         <version>6.0.0</version>
     </parent>
 
-    <artifactId>xignqrAuthNode</artifactId>
+    <artifactId>xignqr-authnode</artifactId>
 
     <groupId>com.xign</groupId>
-    <version>1.0.0-SNAPSHOT</version>    
+    <version>1.0</version>    
     <name>xignqr-authnode</name>
     <description>An Authentication Tree Node for ForgeRock's Identity Platform</description>
     
