@@ -5,39 +5,19 @@
  */
 package com.xign.forgerock;
 
-import com.xign.forgerock.util.Util;
-import com.xign.forgerock.exception.XignTokenException;
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWEObject;
-import com.nimbusds.jose.JWSObject;
-import com.nimbusds.jose.crypto.ECDHDecrypter;
-import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.xign.api.json.JWTClaims;
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import com.xign.forgerock.exception.XignTokenException;
+import com.xign.forgerock.util.Util;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.InvalidKeyException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
-import java.security.UnrecoverableKeyException;
+import java.nio.charset.StandardCharsets;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -52,11 +32,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.client.LaxRedirectStrategy;
+import org.apache.http.impl.client.*;
 import org.apache.http.message.BasicNameValuePair;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.encoders.Base64;
@@ -76,6 +52,7 @@ public class TokenFetcherClient implements ResponseHandler<JsonObject> {
     private CloseableHttpClient httpClient;
     private final JsonParser PARSER = new JsonParser();
 
+    //TODO Constructor never used
     public TokenFetcherClient(String configPath, X509Certificate httpsTrust, boolean useProxy) throws XignTokenException {
 
         InputStream pin;
@@ -133,7 +110,7 @@ public class TokenFetcherClient implements ResponseHandler<JsonObject> {
             String encodedSignatureTrustCert = properties.getProperty("client.trustcert");
             in = new ByteArrayInputStream(Base64.decode(encodedSignatureTrustCert.getBytes()));
             CertificateFactory cf = CertificateFactory.getInstance("X.509", new BouncyCastleProvider());
-            this.trustStore.setCertificateEntry(trustAlias, (X509Certificate) cf.generateCertificate(in));
+            this.trustStore.setCertificateEntry(trustAlias, cf.generateCertificate(in));
 
         } catch (IOException | NoSuchAlgorithmException
                 | CertificateException | KeyStoreException ex) {
@@ -181,14 +158,14 @@ public class TokenFetcherClient implements ResponseHandler<JsonObject> {
     }
 
     @Override
-    public JsonObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+    public JsonObject handleResponse(HttpResponse response) throws IOException {
 
         int statusCode = response.getStatusLine().getStatusCode();
-        JsonObject responseObject = null;
+        JsonObject responseObject;
         switch (statusCode) {
             case 200:
                 byte[] content = IOUtils.toByteArray(response.getEntity().getContent());
-                responseObject = PARSER.parse(new String(content, "UTF-8")).getAsJsonObject();
+                responseObject = PARSER.parse(new String(content, StandardCharsets.UTF_8)).getAsJsonObject();
                 break;
             default:
                 throw new ClientProtocolException("error handling request with status code " + statusCode);
@@ -197,7 +174,7 @@ public class TokenFetcherClient implements ResponseHandler<JsonObject> {
         return responseObject;
     }
 
-    public JWTClaims requestIdToken(String code) throws XignTokenException {
+    JWTClaims requestIdToken(String code) throws XignTokenException {
 
         List<NameValuePair> nvps = new ArrayList<>();
         nvps.add(new BasicNameValuePair("code", code));
