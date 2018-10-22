@@ -15,18 +15,19 @@
 -->
 # xignAuthNode
 
-A simple authentication node for ForgeRock's [Identity Platform][forgerock_platform] 5.5 and above. This node... **SHORT DESCRIPTION HERE**
+An authentication node for use with the [XignQR Authentication System](https://xignsys.com). 
 
-
+# Installation
 Copy the .jar file from the ../target directory into the ../web-container/webapps/openam/WEB-INF/lib directory where AM is deployed.  Restart the web container to pick up the new node.  The node will then appear in the authentication trees components palette.
-
 
 **USAGE HERE**
 
+You have to have your Client (aka ForgeRock OpenAM) registered at [XignQR Public](https://public.xignsys.com) before you are able to use authentication using your smartphone.
 
-The code in this repository has binary dependencies that live in the ForgeRock maven repository. Maven can be configured to authenticate to this repository by following the following [ForgeRock Knowledge Base Article](https://backstage.forgerock.com/knowledge/kb/article/a74096897).
 
 **SPECIFIC BUILD INSTRUCTIONS HERE**
+
+The code in this repository has a dependency on [xign-authnode-common](https://github.com/XignSys/xign-authnode-common)
 
 **SCREENSHOTS ARE GOOD LIKE BELOW**
 
