@@ -50,7 +50,9 @@ After Registration, select your newly created client and use the controls to dow
 
 Place the downloaded Properties on the filesystem of your OpenAM Installtion and provide the path in the configuration of the auth node.
 
+Additonally map your XignQR username to your OpenAM username.
 
+![ScreenShot](./node_conf.png)
 
 
 **SPECIFIC BUILD INSTRUCTIONS HERE**
