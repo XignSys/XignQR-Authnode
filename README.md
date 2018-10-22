@@ -13,7 +13,7 @@
  *
  * Copyright ${data.get('yyyy')} ForgeRock AS.
 -->
-# xignAuthNode
+# XignQR-Authnode
 
 An authentication node for use with the [XignQR Authentication System](https://xignsys.com). 
 
@@ -42,6 +42,4 @@ ForgeRock shall not be liable for any direct, indirect or consequential damages 
 
 [forgerock_platform]: https://www.forgerock.com/platform/  
 
-# XignQR-Authnode
-ForgeRock Integration with XignQR
 
