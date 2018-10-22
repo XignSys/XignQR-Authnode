@@ -22,11 +22,25 @@ Copy the .jar file from the ../target directory into the ../web-container/webapp
 
 **USAGE HERE**
 
-You have to have your Client (aka ForgeRock OpenAM) registered at [XignQR Public](https://public.xignsys.com) before you are able to use authentication using your smartphone.
+To use authentication via smartphone you have to download the XignQR App and register yourself at [XignQR Public](https://public.xignsys.com) to be able to configure your client (aka ForgeRock OpenAM).
+
+Fill in the provided form
+
+![ScreenShot](./form_register.png)
+
+A QR Code is sent to you via email. The qr code is used to enroll your smartphone in the XignQR System. As soon as you have received the qr code follow these instructions:
+
+1. Open up the app, type in the transport pin you have provided when registering yourself. 
+
+2. The App then prompts for some authentication factors
+
+3. Press personalize to enroll your device
+
+4. The personalization process takes about 30 seconds until you are enrolled
 
 **Configuration**
 
-Register your client at [XignQR Public](https://public.xignsys.com).
+Log in to  [XignQR Public](https://public.xignsys.com/m) and register your client.
 
 ![ScreenShot](./register_client.png)
 
@@ -34,21 +48,15 @@ After Registration, select your newly created client and use the controls to dow
 
 ![ScreenShot](./download_button.png)
 
+Place the downloaded Properties on the filesystem of your OpenAM Installtion and provide the path in the configuration of the auth node.
+
+
+
 
 **SPECIFIC BUILD INSTRUCTIONS HERE**
 
 The code in this repository has a dependency on [xign-authnode-common](https://github.com/XignSys/xign-authnode-common)
 
-**SCREENSHOTS ARE GOOD LIKE BELOW**
-
-![ScreenShot](./example.png)
-
-        
-The sample code described herein is provided on an "as is" basis, without warranty of any kind, to the fullest extent permitted by law. ForgeRock does not warrant or guarantee the individual success developers may have in implementing the sample code on their development platforms or in production configurations.
-
-ForgeRock does not warrant, guarantee or make any representations regarding the use, results of use, accuracy, timeliness or completeness of any data or information relating to the sample code. ForgeRock disclaims all warranties, expressed or implied, and in particular, disclaims all warranties of merchantability, and warranties related to the code, or any service or software related thereto.
-
-ForgeRock shall not be liable for any direct, indirect or consequential damages or costs of any type arising out of any action taken by you or others related to the sample code.
 
 [forgerock_platform]: https://www.forgerock.com/platform/  
 
