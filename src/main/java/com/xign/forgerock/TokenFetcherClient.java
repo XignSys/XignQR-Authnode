@@ -7,7 +7,7 @@ package com.xign.forgerock;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.xign.api.json.JWTClaims;
+import com.xign.xignmanager.common.JWTClaims;
 import com.xign.forgerock.exception.XignTokenException;
 import com.xign.forgerock.util.Util;
 import java.io.*;

@@ -42,6 +42,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>com.xign</groupId>
+            <artifactId>xignmanager-common</artifactId>
+            <version>1.0</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.6.2</version>
@@ -56,31 +62,38 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.xign</groupId>
-            <artifactId>XignCommunication-api</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <type>jar</type>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>com.xign.forgerock</groupId>
             <artifactId>xign-authnode-common</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
     
-<!--    <repositories>
-        <repository>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>forgerock-private-releases</id>
-            <name>ForgeRock Private Release Repository</name>
-            <url>http://maven.forgerock.org/repo/private-releases</url>
-        </repository>
-    </repositories>-->
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                      todir="${target.path}" />
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <target.path>../build</target.path>
     </properties>
 </project>

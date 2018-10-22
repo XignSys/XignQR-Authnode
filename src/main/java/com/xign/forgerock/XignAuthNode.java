@@ -22,7 +22,7 @@ import com.sun.identity.authentication.callbacks.HiddenValueCallback;
 import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
-import com.xign.api.json.JWTClaims;
+import com.xign.xignmanager.common.JWTClaims;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
