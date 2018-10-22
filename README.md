@@ -15,7 +15,7 @@
 -->
 # XignQR-Authnode
 
-An authentication node for use with the [XignQR Authentication System](https://xignsys.com). 
+An authentication node for integration with the [XignQR Authentication System](https://xignsys.com). Using XignQR you will be able to authenticate against OpenAM > v6.5 using your smartphone.
 
 # Installation
 Copy the .jar file from the ../target directory into the ../web-container/webapps/openam/WEB-INF/lib directory where AM is deployed.  Restart the web container to pick up the new node.  The node will then appear in the authentication trees components palette.
