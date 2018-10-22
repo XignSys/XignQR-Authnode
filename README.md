@@ -26,7 +26,13 @@ You have to have your Client (aka ForgeRock OpenAM) registered at [XignQR Public
 
 **Configuration**
 
-Register your client at [XignQR Public](https://public.xignsys.com) and download the properties file.
+Register your client at [XignQR Public](https://public.xignsys.com).
+
+![ScreenShot](./register_client.png)
+
+After Registration, select your newly created client and use the controls to download the properties file
+
+![ScreenShot](./download_button.png)
 
 
 **SPECIFIC BUILD INSTRUCTIONS HERE**
