@@ -24,6 +24,10 @@ Copy the .jar file from the ../target directory into the ../web-container/webapp
 
 You have to have your Client (aka ForgeRock OpenAM) registered at [XignQR Public](https://public.xignsys.com) before you are able to use authentication using your smartphone.
 
+**Configuration**
+
+Register your client at [XignQR Public](https://public.xignsys.com) and download the properties file.
+
 
 **SPECIFIC BUILD INSTRUCTIONS HERE**
 
