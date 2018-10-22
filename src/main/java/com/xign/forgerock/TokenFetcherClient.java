@@ -7,8 +7,8 @@ package com.xign.forgerock;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.xign.xignmanager.common.JWTClaims;
 import com.xign.forgerock.exception.XignTokenException;
+import com.xign.forgerock.util.JWTClaims;
 import com.xign.forgerock.util.Util;
 import java.io.*;
 import java.net.MalformedURLException;
@@ -149,7 +149,7 @@ public class TokenFetcherClient implements ResponseHandler<JsonObject> {
 
             builder.setSSLContext(ctx);
             builder.setRetryHandler(new DefaultHttpRequestRetryHandler(0, false));
-        } catch (NoSuchAlgorithmException | KeyManagementException | IOException | CertificateException | KeyStoreException | NoSuchProviderException ex) {
+        } catch (NoSuchAlgorithmException | KeyManagementException | IOException | CertificateException | KeyStoreException ex) {
             LOG.log(Level.SEVERE, ex.getMessage(), ex);
             throw new XignTokenException("error constructing ssl context");
         }
