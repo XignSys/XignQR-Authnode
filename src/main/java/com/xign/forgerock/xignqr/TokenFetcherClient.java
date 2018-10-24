@@ -3,13 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.xign.forgerock;
+package com.xign.forgerock.xignqr;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.xign.forgerock.exception.XignTokenException;
-import com.xign.forgerock.util.JWTClaims;
-import com.xign.forgerock.util.Util;
+import com.xign.forgerock.common.JWTClaims;
+import com.xign.forgerock.common.Util;
+import com.xign.forgerock.common.XignTokenException;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;

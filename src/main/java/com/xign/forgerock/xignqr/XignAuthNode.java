@@ -13,17 +13,17 @@
  *
  * Copyright 2018 ForgeRock AS.
  */
-package com.xign.forgerock;
+package com.xign.forgerock.xignqr;
 
-import com.xign.forgerock.exception.XignTokenException;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.authentication.callbacks.HiddenValueCallback;
 import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
-import com.xign.forgerock.util.JWTClaims;
-import com.xign.forgerock.util.Util;
+import com.xign.forgerock.common.JWTClaims;
+import com.xign.forgerock.common.Util;
+import com.xign.forgerock.common.XignTokenException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;

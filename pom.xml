@@ -55,11 +55,6 @@
             <type>jar</type>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>com.xign.forgerock</groupId>
-            <artifactId>xign-authnode-common</artifactId>
-            <version>1.0</version>
-        </dependency>
     </dependencies>
     
     <build>
