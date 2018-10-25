@@ -46,8 +46,6 @@ public class PropertiesFactory {
         }
         return xignInScript;
     }
-    
-    
 
     private static Properties loadProperties(String path) throws IOException {
         if (properties == null) {
@@ -66,8 +64,8 @@ public class PropertiesFactory {
         HttpGet get = new HttpGet(managerUrl + "/js/v3/xignin-v3-forgerock.js");
         CloseableHttpResponse response = client.execute(get);
         byte[] scr = IOUtils.toByteArray(response.getEntity().getContent());
-        xignInScript = new String(scr, "UTF-8");
-        return xignInScript.replace("###manager.url###", managerUrl)
+        String script = new String(scr, "UTF-8");
+        return script.replace("###manager.url###", managerUrl)
                 .replace("###redirectUri###", redirectUri)
                 .replace("###clientId###", clientId);
 

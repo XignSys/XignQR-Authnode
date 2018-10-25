@@ -174,7 +174,7 @@ public class TokenFetcherClient implements ResponseHandler<JsonObject> {
         return responseObject;
     }
 
-    JWTClaims requestIdToken(String code) throws XignTokenException {
+    public JWTClaims requestIdToken(String code) throws XignTokenException {
 
         List<NameValuePair> nvps = new ArrayList<>();
         nvps.add(new BasicNameValuePair("code", code));
