@@ -20,11 +20,13 @@ import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
 import com.xign.forgerock.common.JWTClaims;
+import com.xign.forgerock.common.PropertiesFactory;
 import com.xign.forgerock.common.UserInfoSelector;
 import com.xign.forgerock.common.XignTokenException;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -96,15 +98,6 @@ public class XignPush extends AbstractDecisionNode {
         if (context.hasCallbacks()) {
 
             String inputUsername = findCallbackValue(context);
-
-            InputStream fin;
-            try {
-                fin = new FileInputStream(config.pathToXignConfig());
-            } catch (FileNotFoundException ex) {
-                debug.error(ex.getMessage());
-                throw new NodeProcessException(ex.getMessage());
-            }
-
             String username;
             try {
                 // select which attributes should delivered in response
@@ -113,10 +106,11 @@ public class XignPush extends AbstractDecisionNode {
                 selector.setEmail(1);
 
                 // request push login for username and retrieve token
-                PushFetcherClient pushClient = new PushFetcherClient(fin, null);
+                PushFetcherClient pushClient =
+                        new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null);
                 JWTClaims claims = pushClient.requestPushWithUsername(inputUsername, selector);
                 username = claims.getNickname();
-            } catch (XignTokenException ex) {
+            } catch (XignTokenException | IOException ex) {
                 debug.error(ex.getMessage());
                 throw new NodeProcessException(ex.getMessage());
             }

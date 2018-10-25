@@ -22,6 +22,7 @@ import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
 import com.xign.forgerock.common.JWTClaims;
+import com.xign.forgerock.common.PropertiesFactory;
 import com.xign.forgerock.common.Util;
 import com.xign.forgerock.common.XignTokenException;
 import java.io.FileInputStream;
@@ -34,6 +35,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.forgerock.openam.auth.node.api.*;
 import org.forgerock.openam.core.CoreWrapper;
 
@@ -64,7 +67,6 @@ public class XignAuthNode extends AbstractDecisionNode {
     private final static String DEBUG_FILE = "XignQR";
     protected Debug debug = Debug.getInstance(DEBUG_FILE);
     private final String redirectUri, clientId, managerUrl;
-    private final InputStream propertiesInput;
 
     /**
      * Configuration for the node.
@@ -95,64 +97,35 @@ public class XignAuthNode extends AbstractDecisionNode {
         this.coreWrapper = coreWrapper;
 
         // read properties file
+        Properties properties;
         try {
-            propertiesInput = new FileInputStream(config.pathToXignConfig());
-        } catch (FileNotFoundException ex) {
-            debug.error(ex.getMessage());
-            throw new NodeProcessException(ex.getMessage());
-        }
-
-        Properties properties = new Properties();
-        try {
-            properties.load(propertiesInput);
+            properties = PropertiesFactory.getProperties(config.pathToXignConfig());
         } catch (IOException ex) {
-            debug.error(ex.getMessage());
-            throw new NodeProcessException("error loading config file");
-        }
-
-        try {
-            propertiesInput.close();
-        } catch (IOException ex) {
-            debug.error(ex.getMessage());
+            debug.error("error loading properties file", ex);
+            throw new NodeProcessException("error loading properties file");
         }
 
         // openid connect redirect uri
         redirectUri = properties.getProperty("client.redirect_uri");
 
+        // clientId of registered openam instance
         clientId = properties.getProperty("client.id");
 
         // where to connect for retrieval of qrcode in JS
         managerUrl = properties.getProperty("manager.url.token").replace("/token", "");
         
-        debug.message("manager url: "+managerUrl);
     }
 
     @Override
     public Action process(TreeContext context) throws NodeProcessException {
-        String xignInScript = null;
-        HttpClientBuilder builder = HttpClients.custom();
-        builder.setRedirectStrategy(new LaxRedirectStrategy());
+        String xignInScript;
         try {
-            SSLContext ctx = Util.getDefaultContext();
-        } catch (NoSuchAlgorithmException ex) {
-            debug.error(ex.getMessage());
-            throw new NodeProcessException("error retrieving script");
-        }
-        CloseableHttpClient client = builder.build();
-        HttpGet get = new HttpGet(managerUrl + "/js/v3/xignin-v3-forgerock.js");
-        try {
-            CloseableHttpResponse response = client.execute(get);
-            byte[] scr = IOUtils.toByteArray(response.getEntity().getContent());
-            xignInScript = new String(scr, "UTF-8");
-            xignInScript = xignInScript.replace("###manager.url###", managerUrl)
-                    .replace("###redirectUri###", redirectUri)
-                    .replace("###clientId###", clientId);
-            debug.message(xignInScript);
+            xignInScript = PropertiesFactory.getScript(managerUrl, redirectUri, clientId);
         } catch (IOException ex) {
-            debug.error(ex.getMessage());
+            debug.error("error loading script from xign manager", ex);
+            throw new NodeProcessException("error loading script from xign manager");
         }
 
-        //TODO Pull out into a Constant in utility file
         Optional<HiddenValueCallback> result = context.getCallback(HiddenValueCallback.class);
         if (result.isPresent()) { // triggered from javascript, attached to hidden field
             String username;
@@ -178,27 +151,14 @@ public class XignAuthNode extends AbstractDecisionNode {
             }
 
             // fetch token, decrypt and validate
-            InputStream fin;
             try {
-                fin = new FileInputStream(config.pathToXignConfig());
-            } catch (FileNotFoundException ex) {
-                debug.error(ex.getMessage());
-                throw new NodeProcessException(ex.getMessage());
-            }
-
-            try {
-                TokenFetcherClient req = new TokenFetcherClient(fin, null, false);
+                TokenFetcherClient req = 
+                        new TokenFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null, false);
                 JWTClaims claims = req.requestIdToken(code);
                 username = claims.getNickname();
-            } catch (XignTokenException ex) {
+            } catch (XignTokenException | IOException ex) {
                 debug.error(ex.getMessage());
                 throw new NodeProcessException("error fetching IdToken");
-            }
-
-            try {
-                fin.close();
-            } catch (IOException ex) {
-                debug.warning(ex.getMessage());
             }
 
             String mappingName = config.mapping().get(username);
