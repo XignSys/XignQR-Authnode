@@ -22,21 +22,15 @@ import com.sun.identity.shared.debug.Debug;
 import com.xign.forgerock.common.JWTClaims;
 import com.xign.forgerock.common.PropertiesFactory;
 import com.xign.forgerock.common.UserInfoSelector;
+import com.xign.forgerock.common.Util;
 import com.xign.forgerock.common.XignTokenException;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.forgerock.openam.annotations.sm.Attribute;
 import org.forgerock.openam.auth.node.api.*;
 import org.forgerock.openam.core.CoreWrapper;
-
 import javax.inject.Inject;
-
 import javax.security.auth.callback.NameCallback;
 import org.forgerock.json.JsonValue;
 import static org.forgerock.openam.auth.node.api.Action.send;
@@ -69,7 +63,7 @@ public class XignPush extends AbstractDecisionNode {
 
         //TODO Add property name in xignAuthNode for localization
         @Attribute(order = 200)
-        Map<String, String> mapping();
+        String mapping();
     }
 
     /**
@@ -99,6 +93,7 @@ public class XignPush extends AbstractDecisionNode {
 
             String inputUsername = findCallbackValue(context);
             String username;
+            JWTClaims claims;
             try {
                 // select which attributes should delivered in response
                 UserInfoSelector selector = new UserInfoSelector();
@@ -106,26 +101,20 @@ public class XignPush extends AbstractDecisionNode {
                 selector.setEmail(1);
 
                 // request push login for username and retrieve token
-                PushFetcherClient pushClient =
-                        new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null);
-                JWTClaims claims = pushClient.requestPushWithUsername(inputUsername, selector);
-                username = claims.getNickname();
+                PushFetcherClient pushClient
+                        = new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null);
+                claims = pushClient.requestPushWithUsername(inputUsername, selector);
             } catch (XignTokenException | IOException ex) {
                 debug.error(ex.getMessage());
                 throw new NodeProcessException(ex.getMessage());
             }
 
             // get mapping of name = xign-id -> openam-id
-            String mappingName = config.mapping().get(username);
+            String mappingName = config.mapping();
 
-            debug.message("mapping username '" + username + "' to AM Identity '" + mappingName + "'");
+            AMIdentity id = Util.getIdentity(mappingName, claims, context);
 
-            if (mappingName == null) {
-                debug.error("no mapping for username " + username);
-                throw new NodeProcessException("no mapping for username " + username);
-            }
-
-            return makeDecision(mappingName, context);
+            return makeDecision(id, context);
 
         } else {
             List<Callback> callbacks = new ArrayList<>(1);
@@ -136,20 +125,12 @@ public class XignPush extends AbstractDecisionNode {
         }
     }
 
-    private Action makeDecision(String mappingName, TreeContext context) {
+    private Action makeDecision(AMIdentity id, TreeContext context) {
         //check if identity exists with username
-        AMIdentity id;
-        try {
-            id = coreWrapper.getIdentity(mappingName, "/");
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-            return goTo(false).build();
-        }
-
         if (id != null) { // exists, login user
             debug.message("logging in user '" + id.getName() + "'");
             JsonValue newSharedState = context.sharedState.copy();
-            newSharedState.put("username", mappingName);
+            newSharedState.put("username", id.getName());
             return goTo(true).replaceSharedState(newSharedState).build();
         } else {
             debug.error("user not known");

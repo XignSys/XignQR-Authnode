@@ -48,17 +48,31 @@ After Registration, select your newly created client and use the controls to dow
 
 ![ScreenShot](./download_button.png)
 
-Place the downloaded Properties on the filesystem of your OpenAM Installtion and provide the path in the configuration of the auth node.
+Place the downloaded Properties on the filesystem of your OpenAM Installtion and provide the path in the configuration of the auth node. And map the attributes that should be matched.
 
-Additonally map your XignQR username to your OpenAM username.
+**Example XignQR**
+![ScreenShot](./configure_xignqr.png)
 
-![ScreenShot](./node_conf.png)
+**Example XignPush**
+![ScreenShot](./configure_xignpush.png)
 
 
-**SPECIFIC BUILD INSTRUCTIONS HERE**
+# Authentication
+**XignQR**
+Open up your personalized XignQR App and scan the displayed qr code with the integrated qr code scanner.
 
-The code in this repository has a dependency on [xign-authnode-common](https://github.com/XignSys/xign-authnode-common)
+![ScreenShot](./login_xignqr.png)
 
+After scanning the qr code, the app gives a haptic feedback, and you'll see that the app communicates with the XignQR backend system.
+You'll be prompted to accept or decline the delivery of the displayed attributes to openam.
+
+![ScreenShot](./prompt_attributes.jpg)
+
+After you have accepted the delivery of the attributes, you'll be prompted to authenticate yourself against the XignQR App. 
+If you have configured a fingerprint when you personalized your device, you'll be prompted for fingerprint authentication,
+if not you'll be prompted to enter your personal PIN.
+
+ ![ScreenShot](./prompt_authfactor.jpg)
 
 [forgerock_platform]: https://www.forgerock.com/platform/  
 

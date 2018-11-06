@@ -52,9 +52,9 @@ public class AuthNodeTest {
         dummyProps.setProperty("client.keystore.alias", "xyz");
         dummyProps.setProperty("client.redirect_uri", "http://redirect.uri");
         dummyProps.setProperty("client.id", "clientId");
-        dummyProps.setProperty("manager.url.token", "http://192.168.1.3:90/idp/test/dts");
+        dummyProps.setProperty("manager.url.token", "https://prod.v22017042416647763.bestsrv.de/idp/test/dts");
         dummyProps.setProperty("syncfuel.master.secret", "secret");
-        dummyProps.setProperty("manager.url.status", "http://192.168.1.3:90/idp/test/state");
+        dummyProps.setProperty("manager.url.status", "https://prod.v22017042416647763.bestsrv.de/idp/test/state");
         dummyProps.setProperty("client.trustcert", trustCert);
         
         bos = new ByteArrayOutputStream();

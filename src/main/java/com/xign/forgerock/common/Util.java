@@ -12,7 +12,8 @@ import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jose.crypto.ECDHDecrypter;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
-
+import com.sun.identity.idm.AMIdentity;
+import com.sun.identity.idm.IdUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -32,14 +33,22 @@ import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.text.ParseException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.forgerock.json.JsonValue;
+import org.forgerock.openam.auth.node.api.AbstractDecisionNode;
+import org.forgerock.openam.auth.node.api.Action;
+import org.forgerock.openam.auth.node.api.NodeProcessException;
+import static org.forgerock.openam.auth.node.api.SharedStateConstants.REALM;
+import org.forgerock.openam.auth.node.api.TreeContext;
 
 /**
  *
@@ -151,7 +160,7 @@ public class Util {
         JWTClaims claims = null;
         try {
             claims = GSON.fromJson(jClaimsString, JWTClaims.class);
-        }catch(Exception ex){
+        } catch (Exception ex) {
             throw new XignTokenException(ex.getMessage());
         }
         try {
@@ -196,5 +205,33 @@ public class Util {
             throw new XignTokenException("certificate chain is invalid");
         }
 
+    }
+
+    private static String getMappedValue(String mappingName, JWTClaims claims) {
+        switch (mappingName) {
+            case "username":
+                return claims.getNickname();
+            case "mail":
+                return claims.getEmail();
+            case "givenName":
+                return claims.getGiven_name();
+            case "sn":
+                return claims.getFamily_name();
+            default:
+                return null;
+        }
+    }
+
+    public static AMIdentity getIdentity(String mappingName, JWTClaims claims,
+            TreeContext context) throws NodeProcessException {
+        String mappedValue = getMappedValue(mappingName, claims);
+        
+        if(mappedValue == null){
+            throw new NodeProcessException("mapping with name "+mappingName+" is not supported");
+        }
+        
+        Set<String> userSearchAttributes = new HashSet<>();
+        userSearchAttributes.add(mappingName);
+        return IdUtils.getIdentity(mappedValue, context.sharedState.get(REALM).asString(), userSearchAttributes);
     }
 }

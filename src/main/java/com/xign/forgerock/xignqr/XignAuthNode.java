@@ -23,11 +23,11 @@ import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
 import com.xign.forgerock.common.JWTClaims;
 import com.xign.forgerock.common.PropertiesFactory;
+import com.xign.forgerock.common.Util;
 import com.xign.forgerock.common.XignTokenException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import org.forgerock.openam.auth.node.api.*;
@@ -66,7 +66,7 @@ public class XignAuthNode extends AbstractDecisionNode {
 
         //TODO Add property name in XignAuthNode for localization
         @Attribute(order = 200)
-        Map<String, String> mapping();
+        String mapping();
 
     }
 
@@ -98,7 +98,7 @@ public class XignAuthNode extends AbstractDecisionNode {
 
         // where to connect for retrieval of qrcode in JS
         managerUrl = properties.getProperty("manager.url.token").replace("/token", "");
-        
+
     }
 
     @Override
@@ -113,7 +113,6 @@ public class XignAuthNode extends AbstractDecisionNode {
 
         Optional<HiddenValueCallback> result = context.getCallback(HiddenValueCallback.class);
         if (result.isPresent()) { // triggered from javascript, attached to hidden field
-            String username;
             URI redirect;
             try { // check if, URL-Syntax valid
                 redirect = new URI(result.get().getValue());
@@ -136,25 +135,21 @@ public class XignAuthNode extends AbstractDecisionNode {
             }
 
             // fetch token, decrypt and validate
+            JWTClaims claims;
             try {
-                TokenFetcherClient req = 
-                        new TokenFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null, false);
-                JWTClaims claims = req.requestIdToken(code);
-                username = claims.getNickname();
+                TokenFetcherClient req
+                        = new TokenFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null, false);
+                claims = req.requestIdToken(code);
             } catch (XignTokenException | IOException ex) {
                 debug.error(ex.getMessage());
                 throw new NodeProcessException("error fetching IdToken");
             }
 
-            String mappingName = config.mapping().get(username);
-            debug.message("mapping username '" + username + "' to AM Identity '" + mappingName + "'");
+            String mappingName = config.mapping();
 
-            if (mappingName == null) {
-                debug.error("no mapping for username " + username);
-                throw new NodeProcessException("no mapping for username " + username);
-            }
+            AMIdentity id = Util.getIdentity(mappingName, claims, context);
 
-            return makeDecision(mappingName, context);
+            return makeDecision(id, context);
 
         } else {
             ScriptTextOutputCallback scriptCallback
@@ -168,20 +163,11 @@ public class XignAuthNode extends AbstractDecisionNode {
 
     }
 
-    private Action makeDecision(String mappingName, TreeContext context) {
-        //check if identity exists with username
-        AMIdentity id;
-        try {
-            id = coreWrapper.getIdentity(mappingName, "/");
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-            return goTo(false).build();
-        }
-
+    private Action makeDecision(AMIdentity id, TreeContext context) {
         if (id != null) { // exists, login user
             debug.message("logging in user '" + id.getName() + "'");
             JsonValue newSharedState = context.sharedState.copy();
-            newSharedState.put("username", mappingName);
+            newSharedState.put("username", id.getName());
             return goTo(true).replaceSharedState(newSharedState).build();
         } else {
             debug.error("user not known");
