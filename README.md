@@ -26,7 +26,7 @@ To use authentication via smartphone you have to download the XignQR App and reg
 
 Fill in the provided form
 
-![ScreenShot](./form_register.png)
+![ScreenShot](./images/form_register.png)
 
 A QR Code is sent to you via email. The qr code is used to enroll your smartphone in the XignQR System. As soon as you have received the qr code follow these instructions:
 
@@ -42,19 +42,19 @@ A QR Code is sent to you via email. The qr code is used to enroll your smartphon
 
 Log in to  [XignQR Public](https://public.xignsys.com/m) and register your client.
 
-![ScreenShot](./register_client.png)
+![ScreenShot](./images/register_client.png)
 
 After Registration, select your newly created client and use the controls to download the properties file
 
-![ScreenShot](./download_button.png)
+![ScreenShot](./images/download_button.png)
 
 Place the downloaded Properties on the filesystem of your OpenAM Installtion and provide the path in the configuration of the auth node. And map the attributes that should be matched.
 
 **Example XignQR**
-![ScreenShot](./configure_xignqr.png)
+![ScreenShot](./images/configure_xignqr.png)
 
 **Example XignPush**
-![ScreenShot](./configure_xignpush.png)
+![ScreenShot](./images/configure_xignpush.png)
 
 
 # Authentication
@@ -62,30 +62,30 @@ Place the downloaded Properties on the filesystem of your OpenAM Installtion and
 
 Open up your personalized XignQR App and scan the displayed qr code with the integrated qr code scanner.
 
-![ScreenShot](./login_xignqr.png)
+![ScreenShot](./images/login_xignqr.png)
 
 After scanning the qr code, the app gives a haptic feedback, and you'll see that the app communicates with the XignQR backend system.
 You'll be prompted to accept or decline the delivery of the displayed attributes to openam.
 
-<img src="./prompt_attributes.jpg" width="300px"/>
+<img src="./images/prompt_attributes.jpg" width="300px"/>
 
 After you have accepted the delivery of the attributes, you'll be prompted to authenticate yourself against the XignQR App. 
 If you have configured a fingerprint when you personalized your device, you'll be prompted for fingerprint authentication,
 if not you'll be prompted to enter your personal PIN.
 
-<img src="./prompt_authfactor.jpg" width="300px"/>
+<img src="./images/prompt_authfactor.jpg" width="300px"/>
 
 
 **XignPush**
 
 When using XignPush you'll have to enter your XignQR username to be able to log in. 
 
-<img src="./login_xignpush.png"/>
+<img src="./images/login_xignpush.png"/>
 
 The XignQR system will deliver a push notification to your device. When you press on the notification, the XignQR app will open up.
 And the flow will be similar to that of using XignQR.
 
-<img src="./push_notification.jpg" width="300px"/>
+<img src="./images/push_notification.jpg" width="300px"/>
 
 
 [forgerock_platform]: https://www.forgerock.com/platform/  
