@@ -66,7 +66,7 @@ Open up your personalized XignQR App and scan the displayed qr code with the int
 After scanning the qr code, the app gives a haptic feedback, and you'll see that the app communicates with the XignQR backend system.
 You'll be prompted to accept or decline the delivery of the displayed attributes to openam.
 
-![ScreenShot](./prompt_attributes.jpg)
+<img src="./prompt_attributes.jpg" width="200px"/>
 
 After you have accepted the delivery of the attributes, you'll be prompted to authenticate yourself against the XignQR App. 
 If you have configured a fingerprint when you personalized your device, you'll be prompted for fingerprint authentication,
