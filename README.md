@@ -59,6 +59,7 @@ Place the downloaded Properties on the filesystem of your OpenAM Installtion and
 
 # Authentication
 **XignQR**
+
 Open up your personalized XignQR App and scan the displayed qr code with the integrated qr code scanner.
 
 ![ScreenShot](./login_xignqr.png)
@@ -76,6 +77,7 @@ if not you'll be prompted to enter your personal PIN.
 
 
 **XignPush**
+
 When using XignPush you'll have to enter your XignQR username to be able to log in. 
 
 <img src="./login_xignpush.png"/>
