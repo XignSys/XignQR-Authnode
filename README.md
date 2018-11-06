@@ -83,7 +83,7 @@ When using XignPush you'll have to enter your XignQR username to be able to log 
 The XignQR system will deliver a push notification to your device. When you press on the notification, the XignQR app will open up.
 And the flow will be similar to that of using XignQR.
 
-<img src="./push_notification.png" width="300px"/>
+<img src="./push_notification.jpg" width="300px"/>
 
 
 [forgerock_platform]: https://www.forgerock.com/platform/  
