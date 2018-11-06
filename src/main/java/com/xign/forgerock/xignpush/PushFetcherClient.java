@@ -172,7 +172,7 @@ class PushFetcherClient {
             throw new XignTokenException("error requesting push authentication");
         }
 
-        return Util.processTokenResponse(resultObject, clientKeys, keyAlias, keyPassword, trustStore, trustAlias);
+        return Util.processTokenResponse(resultObject.getAsJsonObject("result"), clientKeys, keyAlias, keyPassword, trustStore, trustAlias);
     }
 
     private String sendMessage(JsonObject to) throws CertificateException,
