@@ -17,6 +17,11 @@
 
 An authentication node for integration with the [XignQR Authentication System](https://xignsys.com). Using XignQR you will be able to authenticate against OpenAM > v6.5 using your smartphone.
 
+# XignQR Authentication
+
+XignQR offers you the ability to login and get access to ICT Systems, e. g. ForgeRock, password-less via Smartphone, backed by a high security SaaS platform. Use XignQR as 1-, 2- and M-Factor Authentication tool. Easily integrated via QR Code or Push-Authentication to mitigate cyberattacks like Phishing.
+
+
 # Installation
 Copy the .jar file from the ../target directory into the ../web-container/webapps/openam/WEB-INF/lib directory where AM is deployed.  Restart the web container to pick up the new node.  The node will then appear in the authentication trees components palette.
 
