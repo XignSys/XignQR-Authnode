@@ -40,7 +40,7 @@ A QR Code is sent to you via email. The qr code is used to enroll your smartphon
 
 **Configuration**
 
-Log in to  [XignQR Public](https://public.xignsys.com/m) and register your client.
+Log in to  [XignQR Public](https://prod.v22017042416647763.bestsrv.de/m/start) and register your client.
 
 ![ScreenShot](./images/register_client.png)
 
