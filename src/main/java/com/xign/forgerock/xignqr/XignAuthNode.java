@@ -39,16 +39,11 @@ import org.forgerock.json.JsonValue;
 import org.forgerock.openam.annotations.sm.Attribute;
 import static org.forgerock.openam.auth.node.api.Action.send;
 
-/**
- * A node that checks to see if zero-page login headers have specified username
- * and shared key for this request.
- */
 @Node.Metadata(outcomeProvider = AbstractDecisionNode.OutcomeProvider.class,
         configClass = XignAuthNode.Config.class)
 public class XignAuthNode extends AbstractDecisionNode {
 
     private final Config config;
-    private final CoreWrapper coreWrapper;
     private final static String DEBUG_FILE = "XignQR";
     protected Debug debug = Debug.getInstance(DEBUG_FILE);
     private final String redirectUri, clientId, managerUrl;
@@ -57,14 +52,9 @@ public class XignAuthNode extends AbstractDecisionNode {
      * Configuration for the node.
      */
     public interface Config {
-
-        //TODO Remove filestore config, add as configuration option in node so we don't need to do file I/O for every
-        // process call
-        //TODO Add property name in XignAuthNode for localization
         @Attribute(order = 100)
         String pathToXignConfig();
 
-        //TODO Add property name in XignAuthNode for localization
         @Attribute(order = 200)
         String mapping();
 
@@ -79,7 +69,6 @@ public class XignAuthNode extends AbstractDecisionNode {
     @Inject
     public XignAuthNode(@Assisted Config config, CoreWrapper coreWrapper) throws NodeProcessException {
         this.config = config;
-        this.coreWrapper = coreWrapper;
 
         // read properties file
         Properties properties;

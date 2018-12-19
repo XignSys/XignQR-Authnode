@@ -36,17 +36,11 @@ import org.forgerock.json.JsonValue;
 import static org.forgerock.openam.auth.node.api.Action.send;
 import javax.security.auth.callback.Callback;
 
-/**
- * A node that checks to see if zero-page login headers have specified username
- * and shared key for this request.
- */
 @Node.Metadata(outcomeProvider = AbstractDecisionNode.OutcomeProvider.class,
         configClass = XignPush.Config.class)
-//TODO combine into one node with one config
 public class XignPush extends AbstractDecisionNode {
 
     private final Config config;
-    private final CoreWrapper coreWrapper;
     private final static String DEBUG_FILE = "XignPush";
     private Debug debug = Debug.getInstance(DEBUG_FILE);
 
@@ -55,26 +49,16 @@ public class XignPush extends AbstractDecisionNode {
      */
     public interface Config {
 
-        //TODO Remove filestore config, add as configuration option in node so we don't need to do file I/O for every
-        // process call
-        //TODO Add property name in xignAuthNode for localization
         @Attribute(order = 100)
         String pathToXignConfig();
 
-        //TODO Add property name in xignAuthNode for localization
         @Attribute(order = 200)
         String mapping();
     }
 
-    /**
-     * Create the node.
-     *
-     * @param config The service config.
-     */
     @Inject
     public XignPush(@Assisted Config config, CoreWrapper coreWrapper) {
         this.config = config;
-        this.coreWrapper = coreWrapper;
     }
 
     private String findCallbackValue(TreeContext context) {
@@ -89,21 +73,22 @@ public class XignPush extends AbstractDecisionNode {
 
     @Override
     public Action process(TreeContext context) throws NodeProcessException {
+
         if (context.hasCallbacks()) {
-
             String inputUsername = findCallbackValue(context);
-            String username;
             JWTClaims claims;
-            try {
-                // select which attributes should delivered in response
-                UserInfoSelector selector = new UserInfoSelector();
-                selector.setNickname(1);
-                selector.setEmail(1);
 
+            // select which attributes should delivered in response
+            UserInfoSelector selector = new UserInfoSelector();
+            selector.setNickname(1);
+            selector.setEmail(1);
+            //TODO Needs to be split up into two nodes, one for initial request with an identifier returned. This
+            // identifier should be stored in shared state. THen in the next node, we grab that identifier and check
+            // the status of the push request
+            try {
                 // request push login for username and retrieve token
-                PushFetcherClient pushClient
-                        = new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null);
-                claims = pushClient.requestPushWithUsername(inputUsername, selector);
+                 claims =
+                         new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null).requestPushWithUsername(inputUsername, selector);
             } catch (XignTokenException | IOException ex) {
                 debug.error(ex.getMessage());
                 throw new NodeProcessException(ex.getMessage());
@@ -126,6 +111,7 @@ public class XignPush extends AbstractDecisionNode {
     }
 
     private Action makeDecision(AMIdentity id, TreeContext context) {
+        //TODO Duplicated code with XignAuthNode
         //check if identity exists with username
         if (id != null) { // exists, login user
             debug.message("logging in user '" + id.getName() + "'");

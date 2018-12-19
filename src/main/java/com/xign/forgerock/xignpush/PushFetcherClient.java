@@ -8,33 +8,10 @@ package com.xign.forgerock.xignpush;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.xign.forgerock.common.Crypto;
-import com.xign.forgerock.common.JWTClaims;
-import com.xign.forgerock.common.UserInfoSelector;
-import com.xign.forgerock.common.Util;
-import com.xign.forgerock.common.XignTokenException;
-
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.CookieHandler;
-import java.net.CookieManager;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.security.InvalidKeyException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.SignatureException;
-import java.security.UnrecoverableKeyException;
+import com.xign.forgerock.common.*;
+import java.io.*;
+import java.net.*;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -178,12 +155,7 @@ class PushFetcherClient {
     private String sendMessage(JsonObject to) throws CertificateException,
             NoSuchAlgorithmException, KeyStoreException, KeyManagementException,
             IOException {
-        try {
-            makeConnection();
-        } catch (NoSuchProviderException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-            return null;
-        }
+        makeConnection();
         try {
             if (isSSL) {
                 OutputStream out = new BufferedOutputStream(urlConnection.getOutputStream());
@@ -219,7 +191,7 @@ class PushFetcherClient {
     }
 
     private void makeConnection() throws IOException, KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, KeyManagementException, NoSuchProviderException {
+            NoSuchAlgorithmException, KeyManagementException {
         if (isSSL) {
             SSLContext sslContext;
             if (trustCert != null) {
