@@ -54,7 +54,6 @@ import org.forgerock.openam.auth.node.api.TreeContext;
  *
  * @author palle
  */
-//TODO Add Util code to the node project
 public class Util {
 
     private static final Logger LOG = Logger.getLogger(Util.class.getName());
@@ -78,20 +77,6 @@ public class Util {
 
     public static SSLContext getDefaultContext() throws NoSuchAlgorithmException {
         return SSLContext.getDefault();
-    }
-
-    public static Map<String, String> getPropertyValue(String pathToFile, String[] keys) throws IOException {
-        InputStream fin = new FileInputStream(pathToFile);
-        Properties properties = new Properties();
-        properties.load(fin);
-        fin.close();
-
-        Map<String, String> result = new HashMap<>();
-        for (String key : keys) {
-            result.put(key, properties.getProperty(key));
-        }
-
-        return result;
     }
 
     public static JWTClaims processTokenResponse(JsonObject tokenResponse, KeyStore keyStore,
@@ -157,7 +142,7 @@ public class Util {
         }
 
         String jClaimsString = reqJws.getPayload().toString();
-        JWTClaims claims = null;
+        JWTClaims claims;
         try {
             claims = GSON.fromJson(jClaimsString, JWTClaims.class);
         } catch (Exception ex) {
