@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.xign.forgerock.xignpush;
+package com.xign.forgerock.common;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -27,25 +27,24 @@ import javax.net.ssl.SSLSession;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author palle
  */
-class PushFetcherClient {
+public class PushFetcherClient {
 
     private final String clientId, keyPassword, keyAlias, trustAlias;
     private final URL endpoint;
     private final KeyStore clientKeys, trustStore;
     private final X509Certificate trustCert;
     private final boolean isSSL;
-    private static final Logger LOG = Logger.getLogger(PushFetcherClient.class.getName());
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(PushFetcherClient.class.getName());
 
-    private HttpsURLConnection urlConnection;
-    private HttpURLConnection urlConnectionNoSSL;
     private final JsonParser PARSER = new JsonParser();
 
-    PushFetcherClient(InputStream pin, X509Certificate httpsTrust) throws XignTokenException {
+    public PushFetcherClient(InputStream pin, X509Certificate httpsTrust) throws XignTokenException {
         Properties properties = new Properties();
         try {
             properties.load(pin);
@@ -114,7 +113,7 @@ class PushFetcherClient {
 
     }
 
-    JWTClaims requestPushWithUsername(String userid, UserInfoSelector uiselector) throws XignTokenException {
+    public String requestPushWithUsername(String userid, UserInfoSelector uiselector) throws XignTokenException {
         JsonObject resultObject;
 
         try {
@@ -137,7 +136,7 @@ class PushFetcherClient {
             o.add("payload", payload);
             o.addProperty("signature", signature);
 
-            String result = sendMessage(o);
+            String result = sendMessage(o, endpoint.toString());
             assert result != null;
             resultObject = PARSER.parse(result).getAsJsonObject();
 
@@ -145,53 +144,76 @@ class PushFetcherClient {
                 | IOException | CertificateException | InvalidKeyException
                 | InvalidKeySpecException | SignatureException
                 | KeyManagementException ex) {
-            LOG.log(Level.SEVERE, null, ex);
+            LOG.error(null, ex);
             throw new XignTokenException("error requesting push authentication");
         }
 
-        return Util.processTokenResponse(resultObject.getAsJsonObject("result"), clientKeys, keyAlias, keyPassword, trustStore, trustAlias);
+        return resultObject.get("pollId").getAsString();
+
+        //return Util.processTokenResponse(resultObject.getAsJsonObject("result"), clientKeys, keyAlias, keyPassword, trustStore, trustAlias);
     }
 
-    private String sendMessage(JsonObject to) throws CertificateException,
-            NoSuchAlgorithmException, KeyStoreException, KeyManagementException,
-            IOException {
-        makeConnection();
-        try {
-            if (isSSL) {
-                OutputStream out = new BufferedOutputStream(urlConnection.getOutputStream());
-                out.write(("cmd=" + to.toString()).getBytes());
-                out.flush();
-                out.close();
+    public JWTClaims pollForResult(String pollId) {
 
-                InputStream in = new BufferedInputStream(urlConnection.getInputStream());
-                JsonObject resp = readStream(in);
-                in.close();
-                return resp.toString();
-            } else {
-                OutputStream out = new BufferedOutputStream(urlConnectionNoSSL.getOutputStream());
-                out.write(("cmd=" + to.toString()).getBytes());
-                out.flush();
-                out.close();
+        int RETRIES_MAX = 20;
+        int RETRIES_COUNT = 0;
+        boolean resultReceived = false;
+        JsonObject result = null;
+        JWTClaims claims = null;
 
-                InputStream in = new BufferedInputStream(urlConnectionNoSSL.getInputStream());
-                JsonObject resp = readStream(in);
-                in.close();
-                return resp.toString();
+        // poll for result
+        JsonObject pollRequest = new JsonObject();
+        pollRequest.addProperty("pollId", pollId);
+        while (!resultReceived) {
+            try {
+
+                String response = sendMessage(pollRequest, endpoint.toString().replace("/push", "/result"));
+                LOG.debug("received response from server: " + response);
+                result = new JsonParser().parse(response).getAsJsonObject();
+
+                if (result.get("session-state").getAsString().equals("finished")) {
+                    resultReceived = true;
+
+                    String authstate = result.get("status").getAsString();
+                    if (authstate.equals("authentication-success")) {
+                        LOG.info("received authentication-success");
+                        JsonObject tokenresponse = result.getAsJsonObject("result");
+
+                        try {
+                            claims = processTokenResponse(tokenresponse);
+                        } catch (XignTokenException ex) {
+                            LOG.error(null, ex);
+                        }
+                        
+                        LOG.info(new Gson().toJson(claims));
+                    }
+                    break;
+                }
+
+                if (RETRIES_COUNT == RETRIES_MAX) {
+                    LOG.debug("got max retries {}", RETRIES_COUNT);
+                    break;
+                }
+
+                RETRIES_COUNT++;
+
+                Thread.sleep(1000);
+
+            } catch (IOException | KeyStoreException | CertificateException
+                    | NoSuchAlgorithmException | KeyManagementException
+                    | InterruptedException ex) {
+                LOG.error(null, ex);
             }
-        } catch (IOException ex) {
-            LOG.log(Level.SEVERE, "Error in connection to endpoint, returning ...", ex);
-            return null;
+
         }
+
+        return claims;
+
     }
 
-    private JsonObject readStream(InputStream in) throws IOException {
-        JsonParser p = new JsonParser();
-        byte[] msgBytes = IOUtils.toByteArray(in);
-        return p.parse(new String(msgBytes)).getAsJsonObject();
-    }
-
-    private void makeConnection() throws IOException, KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, KeyManagementException {
+    private HttpURLConnection makeConnection(String url) throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, KeyManagementException, URISyntaxException, NoSuchProviderException {
+        HttpURLConnection plainConnection;
+        HttpsURLConnection sslConnection;
         if (isSSL) {
             SSLContext sslContext;
             if (trustCert != null) {
@@ -200,23 +222,59 @@ class PushFetcherClient {
                 sslContext = Util.getDefaultContext();
             }
 
-            urlConnection = (HttpsURLConnection) endpoint.openConnection();
-            urlConnection.setSSLSocketFactory(sslContext.getSocketFactory());
-            urlConnection.setHostnameVerifier(new NullHostnameVerifier());
+            sslConnection = (HttpsURLConnection) new URL(url).openConnection();
+            sslConnection.setSSLSocketFactory(sslContext.getSocketFactory());
+            sslConnection.setHostnameVerifier(new NullHostnameVerifier());
 
-            urlConnection.setDoOutput(true);
-            urlConnection.setRequestMethod("POST");
-            urlConnection.setRequestProperty("Content-Type",
+            sslConnection.setDoOutput(true);
+            sslConnection.setRequestMethod("POST");
+            sslConnection.setRequestProperty("Content-Type",
                     "application/x-www-form-urlencoded");
-            urlConnection.setChunkedStreamingMode(0);
+            sslConnection.setChunkedStreamingMode(0);
+            return sslConnection;
         } else {
-            urlConnectionNoSSL = (HttpURLConnection) endpoint.openConnection();
-            urlConnectionNoSSL.setDoOutput(true);
-            urlConnectionNoSSL.setRequestMethod("POST");
-            urlConnectionNoSSL.setRequestProperty("Content-Type",
+            plainConnection = (HttpURLConnection) new URL(url).openConnection();
+            plainConnection.setDoOutput(true);
+            plainConnection.setRequestMethod("POST");
+            plainConnection.setRequestProperty("Content-Type",
                     "application/x-www-form-urlencoded");
-            urlConnectionNoSSL.setChunkedStreamingMode(0);
+            plainConnection.setChunkedStreamingMode(0);
+            return plainConnection;
         }
+
+    }
+
+    public JWTClaims processTokenResponse(JsonObject tokenResponse) throws XignTokenException {
+        return Util.processTokenResponse(tokenResponse, clientKeys, keyAlias, keyPassword, trustStore, trustAlias);
+    }
+
+    private String sendMessage(JsonObject to, String url) throws CertificateException,
+            NoSuchAlgorithmException, KeyStoreException, KeyManagementException,
+            IOException {
+        try {
+            HttpURLConnection con = makeConnection(url);
+
+            OutputStream out = new BufferedOutputStream(con.getOutputStream());
+            out.write(("cmd=" + to.toString()).getBytes());
+            out.flush();
+            out.close();
+
+            InputStream in = new BufferedInputStream(con.getInputStream());
+            JsonObject resp = readStream(in);
+            in.close();
+
+            return resp.toString();
+
+        } catch (IOException | URISyntaxException | NoSuchProviderException ex) {
+            LOG.error("Error in connection to endpoint, returning ...", ex);
+            return null;
+        }
+    }
+
+    private JsonObject readStream(InputStream in) throws IOException {
+        JsonParser p = new JsonParser();
+        byte[] msgBytes = IOUtils.toByteArray(in);
+        return p.parse(new String(msgBytes)).getAsJsonObject();
     }
 
     public class NullHostnameVerifier implements HostnameVerifier {

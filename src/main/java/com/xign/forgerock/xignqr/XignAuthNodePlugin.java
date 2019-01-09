@@ -15,11 +15,10 @@
  */
 package com.xign.forgerock.xignqr;
 
-import com.xign.forgerock.xignpush.XignPush;
-import com.xign.forgerock.xignpush.XignPushPlugin;
+import com.xign.forgerock.xignpush.result.XignPush;
+import com.xign.forgerock.xignpush.sender.XignPushRequest;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.forgerock.openam.auth.node.api.AbstractNodeAmPlugin;
@@ -77,7 +76,7 @@ public class XignAuthNodePlugin extends AbstractNodeAmPlugin {
     @Override
     protected Map<String, Iterable<? extends Class<? extends Node>>> getNodesByVersion() {
         return Collections.singletonMap(XignAuthNodePlugin.currentVersion,
-                Arrays.asList(XignAuthNode.class, XignPush.class));
+                Arrays.asList(XignAuthNode.class, XignPush.class, XignPushRequest.class));
 
     }
 

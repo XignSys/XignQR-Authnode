@@ -13,27 +13,23 @@
  *
  * Copyright 2018 ForgeRock AS.
  */
-package com.xign.forgerock.xignpush;
+package com.xign.forgerock.xignpush.result;
 
-import com.google.common.collect.ImmutableList;
+import com.xign.forgerock.common.PushFetcherClient;
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
 import com.xign.forgerock.common.JWTClaims;
 import com.xign.forgerock.common.PropertiesFactory;
-import com.xign.forgerock.common.UserInfoSelector;
 import com.xign.forgerock.common.Util;
 import com.xign.forgerock.common.XignTokenException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import org.forgerock.openam.annotations.sm.Attribute;
 import org.forgerock.openam.auth.node.api.*;
 import org.forgerock.openam.core.CoreWrapper;
 import javax.inject.Inject;
 import javax.security.auth.callback.NameCallback;
 import org.forgerock.json.JsonValue;
-import static org.forgerock.openam.auth.node.api.Action.send;
 import javax.security.auth.callback.Callback;
 
 @Node.Metadata(outcomeProvider = AbstractDecisionNode.OutcomeProvider.class,
@@ -61,53 +57,29 @@ public class XignPush extends AbstractDecisionNode {
         this.config = config;
     }
 
-    private String findCallbackValue(TreeContext context) {
-        for (Callback callback : context.getAllCallbacks()) {
-            NameCallback ncb = (NameCallback) callback;
-            if ("username".equals(ncb.getPrompt())) {
-                return ncb.getName();
-            }
-        }
-        return "";
-    }
-
     @Override
     public Action process(TreeContext context) throws NodeProcessException {
 
-        if (context.hasCallbacks()) {
-            String inputUsername = findCallbackValue(context);
-            JWTClaims claims;
+        JWTClaims claims;
 
-            // select which attributes should delivered in response
-            UserInfoSelector selector = new UserInfoSelector();
-            selector.setNickname(1);
-            selector.setEmail(1);
-            //TODO Needs to be split up into two nodes, one for initial request with an identifier returned. This
-            // identifier should be stored in shared state. THen in the next node, we grab that identifier and check
-            // the status of the push request
-            try {
-                // request push login for username and retrieve token
-                 claims =
-                         new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null).requestPushWithUsername(inputUsername, selector);
-            } catch (XignTokenException | IOException ex) {
-                debug.error(ex.getMessage());
-                throw new NodeProcessException(ex.getMessage());
-            }
+        JsonValue newSharedState = context.sharedState.copy();
+        newSharedState.get("pollId");
 
-            // get mapping of name = xign-id -> openam-id
-            String mappingName = config.mapping();
-
-            AMIdentity id = Util.getIdentity(mappingName, claims, context);
-
-            return makeDecision(id, context);
-
-        } else {
-            List<Callback> callbacks = new ArrayList<>(1);
-            NameCallback nameCallback = new NameCallback("username");
-            callbacks.add(nameCallback);
-            return send(ImmutableList.copyOf(callbacks)).build();
-
+        try {
+            // request push resulkt for pollId and retrieve token
+            claims = new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null)
+                            .pollForResult(newSharedState.get("pollId").asString());
+        } catch (XignTokenException | IOException ex) {
+            debug.error(ex.getMessage());
+            throw new NodeProcessException(ex.getMessage());
         }
+
+        // get mapping of name = xign-id -> openam-id
+        String mappingName = config.mapping();
+
+        AMIdentity id = Util.getIdentity(mappingName, claims, context);
+
+        return makeDecision(id, context);
     }
 
     private Action makeDecision(AMIdentity id, TreeContext context) {

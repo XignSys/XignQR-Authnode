@@ -14,7 +14,7 @@
  * Copyright 2018 ForgeRock AS.
  */
 
-package com.xign.forgerock.xignpush;
+package com.xign.forgerock.xignpush.result;
 
 import java.util.Collections;
 import java.util.Map;
