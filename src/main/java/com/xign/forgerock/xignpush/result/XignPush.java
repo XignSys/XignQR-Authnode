@@ -15,22 +15,20 @@
  */
 package com.xign.forgerock.xignpush.result;
 
-import com.xign.forgerock.common.PushFetcherClient;
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
 import com.xign.forgerock.common.JWTClaims;
 import com.xign.forgerock.common.PropertiesFactory;
+import com.xign.forgerock.common.PushFetcherClient;
 import com.xign.forgerock.common.Util;
 import com.xign.forgerock.common.XignTokenException;
 import java.io.IOException;
+import javax.inject.Inject;
+import org.forgerock.json.JsonValue;
 import org.forgerock.openam.annotations.sm.Attribute;
 import org.forgerock.openam.auth.node.api.*;
 import org.forgerock.openam.core.CoreWrapper;
-import javax.inject.Inject;
-import javax.security.auth.callback.NameCallback;
-import org.forgerock.json.JsonValue;
-import javax.security.auth.callback.Callback;
 
 @Node.Metadata(outcomeProvider = AbstractDecisionNode.OutcomeProvider.class,
         configClass = XignPush.Config.class)
@@ -66,7 +64,7 @@ public class XignPush extends AbstractDecisionNode {
         newSharedState.get("pollId");
 
         try {
-            // request push resulkt for pollId and retrieve token
+            // request push result for pollId and retrieve token
             claims = new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null)
                             .pollForResult(newSharedState.get("pollId").asString());
         } catch (XignTokenException | IOException ex) {
@@ -83,7 +81,6 @@ public class XignPush extends AbstractDecisionNode {
     }
 
     private Action makeDecision(AMIdentity id, TreeContext context) {
-        //TODO Duplicated code with XignAuthNode
         //check if identity exists with username
         if (id != null) { // exists, login user
             debug.message("logging in user '" + id.getName() + "'");

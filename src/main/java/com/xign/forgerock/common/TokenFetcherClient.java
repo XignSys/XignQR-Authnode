@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.xign.forgerock.xignqr;
+package com.xign.forgerock.common;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;

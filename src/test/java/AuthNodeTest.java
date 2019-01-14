@@ -2,7 +2,7 @@
 import com.nimbusds.jose.JOSEException;
 import com.xign.forgerock.common.JWTClaims;
 import com.xign.forgerock.common.XignTokenException;
-import com.xign.forgerock.xignqr.TokenFetcherClient;
+import com.xign.forgerock.common.TokenFetcherClient;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

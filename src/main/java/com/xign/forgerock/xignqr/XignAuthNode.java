@@ -15,6 +15,7 @@
  */
 package com.xign.forgerock.xignqr;
 
+import com.xign.forgerock.common.TokenFetcherClient;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.authentication.callbacks.HiddenValueCallback;

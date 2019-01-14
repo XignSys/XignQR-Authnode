@@ -8,7 +8,6 @@ package com.xign.forgerock.common;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.xign.forgerock.common.*;
 import java.io.*;
 import java.net.*;
 import java.security.*;
@@ -45,6 +44,8 @@ public class PushFetcherClient {
     private final JsonParser PARSER = new JsonParser();
 
     public PushFetcherClient(InputStream pin, X509Certificate httpsTrust) throws XignTokenException {
+        
+        // read and load properties configured in node settings
         Properties properties = new Properties();
         try {
             properties.load(pin);
@@ -102,7 +103,6 @@ public class PushFetcherClient {
         this.trustCert = httpsTrust;
 
         try {
-            //this.clientId = client_id;
             this.endpoint = new URL(pushEndpoint);
         } catch (MalformedURLException ex) {
             Logger.getLogger(PushFetcherClient.class.getName()).log(Level.SEVERE, null, ex);
@@ -113,6 +113,14 @@ public class PushFetcherClient {
 
     }
 
+    /**
+     * Requests the authentication, triggered by Push message to registered device
+     *
+     * @param userid The username collected by XignPushRequestPlugin
+     * @param uiselector The attributes, that are requested from XignQR System
+     * @return pollId for polling the state of authentication in XignPushPlugin
+     * @throws XignTokenException
+     */
     public String requestPushWithUsername(String userid, UserInfoSelector uiselector) throws XignTokenException {
         JsonObject resultObject;
 
@@ -149,10 +157,14 @@ public class PushFetcherClient {
         }
 
         return resultObject.get("pollId").getAsString();
-
-        //return Util.processTokenResponse(resultObject.getAsJsonObject("result"), clientKeys, keyAlias, keyPassword, trustStore, trustAlias);
     }
 
+    /**
+     * Polls state of authentcation using pollId retrieved via {@link #requestPushWithUsername(java.lang.String, com.xign.forgerock.common.UserInfoSelector)}
+     *
+     * @param pollId
+     * @return decrypted and verified JWTClaims returned by XignQR System
+     */
     public JWTClaims pollForResult(String pollId) {
 
         int RETRIES_MAX = 20;
@@ -279,6 +291,12 @@ public class PushFetcherClient {
 
     public class NullHostnameVerifier implements HostnameVerifier {
 
+        /**
+         *
+         * @param hostname
+         * @param session
+         * @return
+         */
         @Override
         public boolean verify(String hostname, SSLSession session) {
             return true;
