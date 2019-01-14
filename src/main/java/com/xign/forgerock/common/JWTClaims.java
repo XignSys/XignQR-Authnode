@@ -5,8 +5,6 @@
  */
 package com.xign.forgerock.common;
 
-//import com.xign.api.json.bin.TransmitObjectProtoV2.AuthenticatorChain;
-
 import java.util.List;
 import java.util.Map;
 
@@ -26,8 +24,6 @@ public class JWTClaims {
     private String acr;//opt
     private String amr; //opt
     private String azp; //opt
-    //private Claims claims;//opt
-
     private String name;
     private String given_name;
     private String family_name;

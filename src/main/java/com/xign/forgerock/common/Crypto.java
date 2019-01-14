@@ -5,7 +5,6 @@
  */
 package com.xign.forgerock.common;
 
-//import com.xign.xignmanager.common.TransmitObjectProto;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;

@@ -7,9 +7,6 @@ package com.xign.forgerock.common;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.xign.forgerock.common.JWTClaims;
-import com.xign.forgerock.common.Util;
-import com.xign.forgerock.common.XignTokenException;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;

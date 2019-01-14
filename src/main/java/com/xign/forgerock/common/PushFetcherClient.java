@@ -43,6 +43,12 @@ public class PushFetcherClient {
 
     private final JsonParser PARSER = new JsonParser();
 
+    /**
+     *
+     * @param pin The InputStream for contents of properties file
+     * @param httpsTrust Optional trusted certificate, if remote server has self-signed certificate
+     * @throws XignTokenException
+     */
     public PushFetcherClient(InputStream pin, X509Certificate httpsTrust) throws XignTokenException {
         
         // read and load properties configured in node settings
@@ -256,7 +262,7 @@ public class PushFetcherClient {
 
     }
 
-    public JWTClaims processTokenResponse(JsonObject tokenResponse) throws XignTokenException {
+    private JWTClaims processTokenResponse(JsonObject tokenResponse) throws XignTokenException {
         return Util.processTokenResponse(tokenResponse, clientKeys, keyAlias, keyPassword, trustStore, trustAlias);
     }
 
@@ -289,7 +295,7 @@ public class PushFetcherClient {
         return p.parse(new String(msgBytes)).getAsJsonObject();
     }
 
-    public class NullHostnameVerifier implements HostnameVerifier {
+    private class NullHostnameVerifier implements HostnameVerifier {
 
         /**
          *
