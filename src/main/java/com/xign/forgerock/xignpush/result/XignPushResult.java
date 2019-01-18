@@ -15,6 +15,9 @@
  */
 package com.xign.forgerock.xignpush.result;
 
+import static com.xign.forgerock.common.Util.XIGN_POLL_ID;
+
+import com.google.common.collect.ImmutableList;
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
@@ -24,19 +27,28 @@ import com.xign.forgerock.common.PushFetcherClient;
 import com.xign.forgerock.common.Util;
 import com.xign.forgerock.common.XignTokenException;
 import java.io.IOException;
+import java.util.List;
+import java.util.ResourceBundle;
 import javax.inject.Inject;
 import org.forgerock.json.JsonValue;
 import org.forgerock.openam.annotations.sm.Attribute;
-import org.forgerock.openam.auth.node.api.*;
-import org.forgerock.openam.core.CoreWrapper;
+import org.forgerock.openam.auth.node.api.AbstractDecisionNode;
+import org.forgerock.openam.auth.node.api.Action;
+import org.forgerock.openam.auth.node.api.Node;
+import org.forgerock.openam.auth.node.api.NodeProcessException;
+import org.forgerock.openam.auth.node.api.SharedStateConstants;
+import org.forgerock.openam.auth.node.api.TreeContext;
+import org.forgerock.util.i18n.PreferredLocales;
 
-@Node.Metadata(outcomeProvider = AbstractDecisionNode.OutcomeProvider.class,
-        configClass = XignPush.Config.class)
-public class XignPush extends AbstractDecisionNode {
+@Node.Metadata(outcomeProvider = XignPushResult.XignPushResultOutcomeProvider.class,
+        configClass = XignPushResult.Config.class)
+public class XignPushResult extends AbstractDecisionNode {
 
     private final Config config;
-    private final static String DEBUG_FILE = "XignPush";
+    private final static String DEBUG_FILE = "XignPushResult";
     private Debug debug = Debug.getInstance(DEBUG_FILE);
+    private static final String BUNDLE = XignPushResult.class.getName();
+
 
     /**
      * Configuration for the node.
@@ -51,7 +63,7 @@ public class XignPush extends AbstractDecisionNode {
     }
 
     @Inject
-    public XignPush(@Assisted Config config, CoreWrapper coreWrapper) {
+    public XignPushResult(@Assisted Config config) {
         this.config = config;
     }
 
@@ -61,12 +73,14 @@ public class XignPush extends AbstractDecisionNode {
         JWTClaims claims;
 
         JsonValue newSharedState = context.sharedState.copy();
-        newSharedState.get("pollId");
+        newSharedState.get(XIGN_POLL_ID);
 
         try {
+            //TODO The config should be cached and reloaded from memory after the initial node reads it so that so
+            // much file I/O is occurring
             // request push result for pollId and retrieve token
             claims = new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null)
-                            .pollForResult(newSharedState.get("pollId").asString());
+                            .pollForResult(newSharedState.get(XIGN_POLL_ID).asString());
         } catch (XignTokenException | IOException ex) {
             debug.error(ex.getMessage());
             throw new NodeProcessException(ex.getMessage());
@@ -85,11 +99,46 @@ public class XignPush extends AbstractDecisionNode {
         if (id != null) { // exists, login user
             debug.message("logging in user '" + id.getName() + "'");
             JsonValue newSharedState = context.sharedState.copy();
-            newSharedState.put("username", id.getName());
-            return goTo(true).replaceSharedState(newSharedState).build();
+            newSharedState.put(SharedStateConstants.USERNAME, id.getName());
+            return Action.goTo(XignPushResultOutcome.TRUE.name()).replaceSharedState(newSharedState).build();
         } else {
             debug.error("user not known");
-            return goTo(false).build();
+            return Action.goTo(XignPushResultOutcome.FALSE.name()).build();
         }
+    }
+
+    /**
+     * Defines the possible outcomes from this XignPushResult node.
+     */
+    public static class XignPushResultOutcomeProvider implements org.forgerock.openam.auth.node.api.OutcomeProvider {
+        @Override
+        public List<Outcome> getOutcomes(PreferredLocales locales, JsonValue nodeAttributes) {
+            ResourceBundle bundle = locales.getBundleInPreferredLocale(XignPushResult.BUNDLE,
+                    XignPushResult.class.getClassLoader());
+            return ImmutableList.of(
+                    new Outcome(XignPushResultOutcome.TRUE.name(), bundle.getString("trueOutcome")),
+                    new Outcome(XignPushResultOutcome.FALSE.name(), bundle.getString("falseOutcome")),
+                    new Outcome(XignPushResultOutcome.UNANSWERED.name(), bundle.getString("unansweredOutcome"))
+            );
+        }
+    }
+
+    /**
+     * The possible outcomes for the LdapDecisionNode.
+     */
+    public enum XignPushResultOutcome {
+        /**
+         * Successful authentication.
+         */
+        TRUE,
+        /**
+         * Authentication failed.
+         */
+        FALSE,
+        /**
+         * The end user has not responded yet.
+         */
+        UNANSWERED
+
     }
 }

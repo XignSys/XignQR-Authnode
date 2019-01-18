@@ -15,7 +15,8 @@
  */
 package com.xign.forgerock.xignqr;
 
-import com.xign.forgerock.common.TokenFetcherClient;
+import static org.forgerock.openam.auth.node.api.Action.send;
+
 import com.google.common.collect.ImmutableList;
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.authentication.callbacks.HiddenValueCallback;
@@ -24,6 +25,7 @@ import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
 import com.xign.forgerock.common.JWTClaims;
 import com.xign.forgerock.common.PropertiesFactory;
+import com.xign.forgerock.common.TokenFetcherClient;
 import com.xign.forgerock.common.Util;
 import com.xign.forgerock.common.XignTokenException;
 import java.io.IOException;
@@ -31,14 +33,15 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Optional;
 import java.util.Properties;
-import org.forgerock.openam.auth.node.api.*;
-import org.forgerock.openam.core.CoreWrapper;
-
 import javax.inject.Inject;
 import javax.security.auth.callback.Callback;
 import org.forgerock.json.JsonValue;
 import org.forgerock.openam.annotations.sm.Attribute;
-import static org.forgerock.openam.auth.node.api.Action.send;
+import org.forgerock.openam.auth.node.api.AbstractDecisionNode;
+import org.forgerock.openam.auth.node.api.Action;
+import org.forgerock.openam.auth.node.api.Node;
+import org.forgerock.openam.auth.node.api.NodeProcessException;
+import org.forgerock.openam.auth.node.api.TreeContext;
 
 @Node.Metadata(outcomeProvider = AbstractDecisionNode.OutcomeProvider.class,
         configClass = XignAuthNode.Config.class)
@@ -46,7 +49,7 @@ public class XignAuthNode extends AbstractDecisionNode {
 
     private final Config config;
     private final static String DEBUG_FILE = "XignQR";
-    protected Debug debug = Debug.getInstance(DEBUG_FILE);
+    private Debug debug = Debug.getInstance(DEBUG_FILE);
     private final String redirectUri, clientId, managerUrl;
 
     /**
@@ -68,7 +71,7 @@ public class XignAuthNode extends AbstractDecisionNode {
      * @throws NodeProcessException If the configuration was not valid.
      */
     @Inject
-    public XignAuthNode(@Assisted Config config, CoreWrapper coreWrapper) throws NodeProcessException {
+    public XignAuthNode(@Assisted Config config) throws NodeProcessException {
         this.config = config;
 
         // read properties file

@@ -13,10 +13,11 @@
  *
  * Copyright 2018 ForgeRock AS.
  */
-package com.xign.forgerock.xignqr;
+package com.xign.forgerock;
 
-import com.xign.forgerock.xignpush.result.XignPush;
-import com.xign.forgerock.xignpush.sender.XignPushRequest;
+import com.xign.forgerock.xignpush.result.XignPushResult;
+import com.xign.forgerock.xignpush.request.XignPushRequest;
+import com.xign.forgerock.xignqr.XignAuthNode;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -62,7 +63,7 @@ import org.forgerock.openam.plugins.PluginException;
  * @supported.all.api
  * @since AM 5.5.0
  */
-public class XignAuthNodePlugin extends AbstractNodeAmPlugin {
+public class XignNodePlugin extends AbstractNodeAmPlugin {
 
     static private String currentVersion = "1.0.0";
 
@@ -75,8 +76,8 @@ public class XignAuthNodePlugin extends AbstractNodeAmPlugin {
      */
     @Override
     protected Map<String, Iterable<? extends Class<? extends Node>>> getNodesByVersion() {
-        return Collections.singletonMap(XignAuthNodePlugin.currentVersion,
-                Arrays.asList(XignAuthNode.class, XignPush.class, XignPushRequest.class));
+        return Collections.singletonMap(XignNodePlugin.currentVersion,
+                Arrays.asList(XignAuthNode.class, XignPushResult.class, XignPushRequest.class));
 
     }
 
@@ -134,6 +135,6 @@ public class XignAuthNodePlugin extends AbstractNodeAmPlugin {
      */
     @Override
     public String getPluginVersion() {
-        return XignAuthNodePlugin.currentVersion;
+        return XignNodePlugin.currentVersion;
     }
 }

@@ -14,4 +14,4 @@
 # Copyright 2017-2018 ForgeRock AS.
 #
 
-com.xign.forgerock.xignqr.XignAuthNodePlugin
+com.xign.forgerock.XignNodePlugin

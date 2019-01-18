@@ -47,7 +47,10 @@ import org.forgerock.openam.auth.node.api.TreeContext;
  */
 public class Util {
 
+    public static final String XIGN_POLL_ID = "xign_poll_id";
+
     private static final Logger LOG = Logger.getLogger(Util.class.getName());
+
 
     private static final Gson GSON = new Gson();
 

@@ -5,6 +5,8 @@
  */
 package com.xign.forgerock.common;
 
+import static com.xign.forgerock.common.Util.XIGN_POLL_ID;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -26,6 +28,7 @@ import javax.net.ssl.SSLSession;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.forgerock.openam.auth.node.api.NodeProcessException;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -162,71 +165,53 @@ public class PushFetcherClient {
             throw new XignTokenException("error requesting push authentication");
         }
 
-        return resultObject.get("pollId").getAsString();
+        return resultObject.get(XIGN_POLL_ID).getAsString();
     }
 
     /**
-     * Polls state of authentcation using pollId retrieved via {@link #requestPushWithUsername(java.lang.String, com.xign.forgerock.common.UserInfoSelector)}
+     * Polls state of authentication using pollId retrieved via
+     * {@link #requestPushWithUsername(java.lang.String, com.xign.forgerock.common.UserInfoSelector)}
      *
      * @param pollId
      * @return decrypted and verified JWTClaims returned by XignQR System
      */
-    public JWTClaims pollForResult(String pollId) {
+    public JWTClaims pollForResult(String pollId) throws NodeProcessException {
 
-        int RETRIES_MAX = 20;
-        int RETRIES_COUNT = 0;
-        boolean resultReceived = false;
-        JsonObject result = null;
+        JsonObject result;
         JWTClaims claims = null;
 
-        // poll for result
+        //TODO This method should not poll for result, but should just return whether or not the end user
+        // successfully authenticated, failed to authenticate, or has not yet answered. If the user successfully
+        // authenticated, then the JWTClaims should be returned as well to be mapped. The built in nodes, PollingWait
+        // and Retry Limit Decision will handle the retry logic.
         JsonObject pollRequest = new JsonObject();
-        pollRequest.addProperty("pollId", pollId);
-        while (!resultReceived) {
-            try {
+        pollRequest.addProperty(XIGN_POLL_ID, pollId);
+        String response;
+        try {
+            response = sendMessage(pollRequest, endpoint.toString().replace("/push", "/result"));
+        } catch (CertificateException | NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
+            throw new NodeProcessException(e);
+        }
+        LOG.debug("received response from server: " + response);
+        result = new JsonParser().parse(response).getAsJsonObject();
 
-                String response = sendMessage(pollRequest, endpoint.toString().replace("/push", "/result"));
-                LOG.debug("received response from server: " + response);
-                result = new JsonParser().parse(response).getAsJsonObject();
+        if (result.get("session-state").getAsString().equals("finished")) {
 
-                if (result.get("session-state").getAsString().equals("finished")) {
-                    resultReceived = true;
+            String authState = result.get("status").getAsString();
+            if (authState.equals("authentication-success")) {
+                LOG.info("received authentication-success");
+                JsonObject tokenResponse = result.getAsJsonObject("result");
 
-                    String authstate = result.get("status").getAsString();
-                    if (authstate.equals("authentication-success")) {
-                        LOG.info("received authentication-success");
-                        JsonObject tokenresponse = result.getAsJsonObject("result");
-
-                        try {
-                            claims = processTokenResponse(tokenresponse);
-                        } catch (XignTokenException ex) {
-                            LOG.error(null, ex);
-                        }
-                        
-                        LOG.info(new Gson().toJson(claims));
-                    }
-                    break;
+                try {
+                    claims = processTokenResponse(tokenResponse);
+                } catch (XignTokenException ex) {
+                    throw new NodeProcessException(ex);
                 }
-
-                if (RETRIES_COUNT == RETRIES_MAX) {
-                    LOG.debug("got max retries {}", RETRIES_COUNT);
-                    break;
-                }
-
-                RETRIES_COUNT++;
-
-                Thread.sleep(1000);
-
-            } catch (IOException | KeyStoreException | CertificateException
-                    | NoSuchAlgorithmException | KeyManagementException
-                    | InterruptedException ex) {
-                LOG.error(null, ex);
             }
+            return claims;
 
         }
-
-        return claims;
-
+        return null;
     }
 
     private HttpURLConnection makeConnection(String url) throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, KeyManagementException, URISyntaxException, NoSuchProviderException {
@@ -267,8 +252,7 @@ public class PushFetcherClient {
     }
 
     private String sendMessage(JsonObject to, String url) throws CertificateException,
-            NoSuchAlgorithmException, KeyStoreException, KeyManagementException,
-            IOException {
+            NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         try {
             HttpURLConnection con = makeConnection(url);
 
