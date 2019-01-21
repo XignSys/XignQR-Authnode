@@ -155,7 +155,6 @@ public class PushFetcherClient {
             o.addProperty("signature", signature);
 
             String result = sendMessage(o, endpoint.toString());
-            LOG.info("received:\n" + result);
             assert result != null;
             resultObject = PARSER.parse(result).getAsJsonObject();
 
@@ -202,7 +201,7 @@ public class PushFetcherClient {
         if (result.get("session-state").getAsString().equals(PollResult.SESSION_STATE_FINISHED)) {
             authState = result.get("status").getAsString();
             if (authState.equals(PollResult.AUTHENTICATION_SUCCESS)) {
-                LOG.info("received authentication-success");
+                LOG.debug("received authentication-success");
                 JsonObject tokenResponse = result.getAsJsonObject("result");
 
                 try {

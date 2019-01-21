@@ -92,9 +92,7 @@ public class XignPushResult extends AbstractDecisionNode {
             JsonValue newSharedState = context.sharedState.copy();
             if (pollResult.getAuthenticationState().equals(PollResult.AUTHENTICATION_SUCCESS)) {
                 String mappingName = config.mapping().name();
-                debug.message("selected mapping is: "+mappingName);
                 AMIdentity id = Util.getIdentity(mappingName, pollResult.getClaims(), context);
-                debug.message("logging in user '" + id.getName() + "'");
                 newSharedState.put(SharedStateConstants.USERNAME, id.getName());
                 return Action.goTo(XignPushResultOutcome.TRUE.name()).replaceSharedState(newSharedState).build();
             }else{
