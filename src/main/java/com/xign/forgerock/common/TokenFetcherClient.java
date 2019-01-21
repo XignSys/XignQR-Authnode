@@ -44,38 +44,17 @@ public class TokenFetcherClient implements ResponseHandler<JsonObject> {
 
     private KeyStore trustStore = null, keyStore = null;
     private String trustAlias, keyAlias, keyPassword,
-            clientId, redirectUri, tokenUrl, masterSecret, statusUrl;
+            clientId, redirectUri, tokenUrl;
     private X509Certificate httpsTrust = null;
     private CloseableHttpClient httpClient;
     private final JsonParser PARSER = new JsonParser();
 
-    //TODO Constructor never used
-    public TokenFetcherClient(String configPath, X509Certificate httpsTrust, boolean useProxy) throws XignTokenException {
-
-        InputStream pin;
-
-        try {
-            pin = new FileInputStream(configPath);
-        } catch (FileNotFoundException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error reading config file");
-        }
-
-        init(pin, httpsTrust, useProxy);
+    public TokenFetcherClient(Properties properties, X509Certificate httpsTrust, boolean useProxy) throws XignTokenException {
+        init(properties, httpsTrust, useProxy);
     }
 
-    public TokenFetcherClient(InputStream config, X509Certificate httpsTrust, boolean useProxy) throws XignTokenException {
-        init(config, httpsTrust, useProxy);
-    }
-
-    private void init(InputStream config, X509Certificate httpsTrust, boolean useProxy) throws XignTokenException {
-        Properties properties = new Properties();
-        try {
-            properties.load(config);
-        } catch (IOException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error loading config file");
-        }
+    private void init(Properties properties, X509Certificate httpsTrust, boolean useProxy) throws XignTokenException {
+        
 
         String encodedKeystore = properties.getProperty("client.keystore");
         String password = properties.getProperty("client.keystore.password");
@@ -83,8 +62,6 @@ public class TokenFetcherClient implements ResponseHandler<JsonObject> {
         redirectUri = properties.getProperty("client.redirect_uri");
         clientId = properties.getProperty("client.id");
         tokenUrl = properties.getProperty("manager.url.token");
-        masterSecret = properties.getProperty("syncfuel.master.secret");
-        statusUrl = properties.getProperty("manager.url.status");
         String proxy = properties.getProperty("http_proxy");
 
         ByteArrayInputStream in = new ByteArrayInputStream(Base64.decode(encodedKeystore.getBytes()));

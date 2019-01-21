@@ -66,7 +66,7 @@ public class XignPushRequest extends SingleOutcomeNode {
         // request session id for result-polling
         String pollId;
         try {
-            pollId = new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()),
+            pollId = new PushFetcherClient(PropertiesFactory.getXignProperties(config.pathToXignConfig()),
                     null).requestPushWithUsername(inputUsername, selector);
         } catch (IOException ex) {
             debug.error("Error Loading Properties");

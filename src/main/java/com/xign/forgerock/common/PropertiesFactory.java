@@ -5,10 +5,7 @@
  */
 package com.xign.forgerock.common;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -28,21 +25,8 @@ public class PropertiesFactory {
 
     private static Properties properties;
     private static String xignInScript;
-    private static ByteArrayOutputStream outputStream;
-
-    public static Properties getProperties(String path) throws FileNotFoundException, IOException {
-        return loadProperties(path);
-    }
-
-    public static InputStream getPropertiesAsInputStream(String path) throws IOException {
-        
-        if (outputStream == null) {
-            outputStream = new ByteArrayOutputStream();
-            loadProperties(path).store(outputStream, "");
-        }
-
-        return new ByteArrayInputStream(outputStream.toByteArray());
-    }
+    
+    protected PropertiesFactory(){}
 
     public static String getScript(String managerUrl, String redirectUri, String clientId) throws IOException {
         if (xignInScript == null) {
@@ -51,7 +35,7 @@ public class PropertiesFactory {
         return xignInScript;
     }
 
-    private static Properties loadProperties(String path) throws IOException {
+    public static Properties getXignProperties(String path) throws IOException {
         if (properties == null) {
             InputStream in = new FileInputStream(path);
             properties = new Properties();

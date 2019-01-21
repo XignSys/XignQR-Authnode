@@ -77,7 +77,7 @@ public class XignPushResult extends AbstractDecisionNode {
         newSharedState.get(XIGN_POLL_ID);
 
         try {
-            pollResult = new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null)
+            pollResult = new PushFetcherClient(PropertiesFactory.getXignProperties(config.pathToXignConfig()), null)
                     .pollForResult(newSharedState.get(XIGN_POLL_ID).asString());
         } catch (XignTokenException | IOException ex) {
             debug.error(ex.getMessage());

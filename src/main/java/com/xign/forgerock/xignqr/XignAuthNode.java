@@ -80,7 +80,7 @@ public class XignAuthNode extends AbstractDecisionNode {
         // read properties file
         Properties properties;
         try {
-            properties = PropertiesFactory.getProperties(config.pathToXignConfig());
+            properties = PropertiesFactory.getXignProperties(config.pathToXignConfig());
         } catch (IOException ex) {
             debug.error("error loading properties file", ex);
             throw new NodeProcessException("error loading properties file");
@@ -134,7 +134,7 @@ public class XignAuthNode extends AbstractDecisionNode {
             JWTClaims claims;
             try {
                 TokenFetcherClient req
-                        = new TokenFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null, false);
+                        = new TokenFetcherClient(PropertiesFactory.getXignProperties(config.pathToXignConfig()), null, false);
                 claims = req.requestIdToken(code);
             } catch (XignTokenException | IOException ex) {
                 debug.error(ex.getMessage());

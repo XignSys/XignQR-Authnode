@@ -63,7 +63,7 @@ public class AuthNodeTest {
         
         
         // test token retrieval, signature, encryption/decryption
-        TokenFetcherClient tf = new TokenFetcherClient(in, null, false);
+        TokenFetcherClient tf = new TokenFetcherClient(dummyProps, null, false);
         JWTClaims jwtClaims = tf.requestIdToken("");
         
         // assert that claims successfully decryptes and verified

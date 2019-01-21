@@ -52,17 +52,7 @@ public class PushFetcherClient {
      * self-signed certificate
      * @throws XignTokenException
      */
-    public PushFetcherClient(InputStream pin, X509Certificate httpsTrust) throws XignTokenException {
-
-        // read and load properties configured in node settings
-        Properties properties = new Properties();
-        try {
-            properties.load(pin);
-        } catch (IOException ex) {
-            Logger.getLogger(PushFetcherClient.class.getName()).log(Level.SEVERE, null, ex);
-            throw new XignTokenException("error loading properties");
-        }
-
+    public PushFetcherClient(Properties properties, X509Certificate httpsTrust) throws XignTokenException {
         String encodedKeystore = properties.getProperty("client.keystore");
         String password = properties.getProperty("client.keystore.password");
         String kAlias = properties.getProperty("client.keystore.alias");
