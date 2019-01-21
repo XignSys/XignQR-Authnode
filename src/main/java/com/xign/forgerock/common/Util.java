@@ -188,13 +188,13 @@ public class Util {
 
     private static String getMappedValue(String mappingName, JWTClaims claims) {
         switch (mappingName) {
-            case "username":
+            case "USERNAME":
                 return claims.getNickname();
-            case "mail":
+            case "EMAIL":
                 return claims.getEmail();
-            case "givenName":
+            case "GIVENNAME":
                 return claims.getGiven_name();
-            case "sn":
+            case "SN":
                 return claims.getFamily_name();
             default:
                 return null;

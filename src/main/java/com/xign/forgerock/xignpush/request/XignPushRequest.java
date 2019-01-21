@@ -5,13 +5,12 @@
  */
 package com.xign.forgerock.xignpush.request;
 
-import static com.xign.forgerock.common.Util.XIGN_POLL_ID;
-
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.shared.debug.Debug;
 import com.xign.forgerock.common.PropertiesFactory;
 import com.xign.forgerock.common.PushFetcherClient;
 import com.xign.forgerock.common.UserInfoSelector;
+import static com.xign.forgerock.common.Util.XIGN_POLL_ID;
 import com.xign.forgerock.common.XignTokenException;
 import java.io.IOException;
 import javax.inject.Inject;
@@ -67,8 +66,6 @@ public class XignPushRequest extends SingleOutcomeNode {
         // request session id for result-polling
         String pollId;
         try {
-            //TODO The config should be cached and reloaded from memory after the initial node reads it so that so
-            // much file I/O is occurring
             pollId = new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()),
                     null).requestPushWithUsername(inputUsername, selector);
         } catch (IOException ex) {

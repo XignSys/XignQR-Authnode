@@ -15,8 +15,6 @@
  */
 package com.xign.forgerock.xignqr;
 
-import static org.forgerock.openam.auth.node.api.Action.send;
-
 import com.google.common.collect.ImmutableList;
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.authentication.callbacks.HiddenValueCallback;
@@ -24,6 +22,7 @@ import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
 import com.xign.forgerock.common.JWTClaims;
+import com.xign.forgerock.common.MappingEnum;
 import com.xign.forgerock.common.PropertiesFactory;
 import com.xign.forgerock.common.TokenFetcherClient;
 import com.xign.forgerock.common.Util;
@@ -39,6 +38,7 @@ import org.forgerock.json.JsonValue;
 import org.forgerock.openam.annotations.sm.Attribute;
 import org.forgerock.openam.auth.node.api.AbstractDecisionNode;
 import org.forgerock.openam.auth.node.api.Action;
+import static org.forgerock.openam.auth.node.api.Action.send;
 import org.forgerock.openam.auth.node.api.Node;
 import org.forgerock.openam.auth.node.api.NodeProcessException;
 import org.forgerock.openam.auth.node.api.TreeContext;
@@ -56,11 +56,14 @@ public class XignAuthNode extends AbstractDecisionNode {
      * Configuration for the node.
      */
     public interface Config {
+
         @Attribute(order = 100)
         String pathToXignConfig();
 
         @Attribute(order = 200)
-        String mapping();
+        default MappingEnum mapping() {
+            return MappingEnum.USERNAME;
+        }
 
     }
 
@@ -138,7 +141,7 @@ public class XignAuthNode extends AbstractDecisionNode {
                 throw new NodeProcessException("error fetching IdToken");
             }
 
-            String mappingName = config.mapping();
+            String mappingName = config.mapping().name();
 
             AMIdentity id = Util.getIdentity(mappingName, claims, context);
 

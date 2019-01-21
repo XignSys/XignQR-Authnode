@@ -15,16 +15,16 @@
  */
 package com.xign.forgerock.xignpush.result;
 
-import static com.xign.forgerock.common.Util.XIGN_POLL_ID;
-
 import com.google.common.collect.ImmutableList;
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.shared.debug.Debug;
-import com.xign.forgerock.common.JWTClaims;
+import com.xign.forgerock.common.MappingEnum;
+import com.xign.forgerock.common.PollResult;
 import com.xign.forgerock.common.PropertiesFactory;
 import com.xign.forgerock.common.PushFetcherClient;
 import com.xign.forgerock.common.Util;
+import static com.xign.forgerock.common.Util.XIGN_POLL_ID;
 import com.xign.forgerock.common.XignTokenException;
 import java.io.IOException;
 import java.util.List;
@@ -49,7 +49,6 @@ public class XignPushResult extends AbstractDecisionNode {
     private Debug debug = Debug.getInstance(DEBUG_FILE);
     private static final String BUNDLE = XignPushResult.class.getName();
 
-
     /**
      * Configuration for the node.
      */
@@ -59,7 +58,9 @@ public class XignPushResult extends AbstractDecisionNode {
         String pathToXignConfig();
 
         @Attribute(order = 200)
-        String mapping();
+        default MappingEnum mapping(){
+            return MappingEnum.USERNAME;
+        }
     }
 
     @Inject
@@ -70,40 +71,38 @@ public class XignPushResult extends AbstractDecisionNode {
     @Override
     public Action process(TreeContext context) throws NodeProcessException {
 
-        JWTClaims claims;
+        PollResult pollResult;
 
         JsonValue newSharedState = context.sharedState.copy();
         newSharedState.get(XIGN_POLL_ID);
 
         try {
-            //TODO The config should be cached and reloaded from memory after the initial node reads it so that so
-            // much file I/O is occurring
-            // request push result for pollId and retrieve token
-            claims = new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null)
-                            .pollForResult(newSharedState.get(XIGN_POLL_ID).asString());
+            pollResult = new PushFetcherClient(PropertiesFactory.getPropertiesAsInputStream(config.pathToXignConfig()), null)
+                    .pollForResult(newSharedState.get(XIGN_POLL_ID).asString());
         } catch (XignTokenException | IOException ex) {
             debug.error(ex.getMessage());
             throw new NodeProcessException(ex.getMessage());
         }
 
-        // get mapping of name = xign-id -> openam-id
-        String mappingName = config.mapping();
-
-        AMIdentity id = Util.getIdentity(mappingName, claims, context);
-
-        return makeDecision(id, context);
+        return makeDecision(pollResult, context);
     }
 
-    private Action makeDecision(AMIdentity id, TreeContext context) {
-        //check if identity exists with username
-        if (id != null) { // exists, login user
-            debug.message("logging in user '" + id.getName() + "'");
+    private Action makeDecision(PollResult pollResult, TreeContext context) throws NodeProcessException {
+        if (pollResult.getSessionState().equals(PollResult.SESSION_STATE_FINISHED)) {
             JsonValue newSharedState = context.sharedState.copy();
-            newSharedState.put(SharedStateConstants.USERNAME, id.getName());
-            return Action.goTo(XignPushResultOutcome.TRUE.name()).replaceSharedState(newSharedState).build();
+            if (pollResult.getAuthenticationState().equals(PollResult.AUTHENTICATION_SUCCESS)) {
+                String mappingName = config.mapping().name();
+                debug.message("selected mapping is: "+mappingName);
+                AMIdentity id = Util.getIdentity(mappingName, pollResult.getClaims(), context);
+                debug.message("logging in user '" + id.getName() + "'");
+                newSharedState.put(SharedStateConstants.USERNAME, id.getName());
+                return Action.goTo(XignPushResultOutcome.TRUE.name()).replaceSharedState(newSharedState).build();
+            }else{
+                return Action.goTo(XignPushResultOutcome.FALSE.name()).build();
+            }
+
         } else {
-            debug.error("user not known");
-            return Action.goTo(XignPushResultOutcome.FALSE.name()).build();
+            return Action.goTo(XignPushResultOutcome.UNANSWERED.name()).build();
         }
     }
 
@@ -111,6 +110,7 @@ public class XignPushResult extends AbstractDecisionNode {
      * Defines the possible outcomes from this XignPushResult node.
      */
     public static class XignPushResultOutcomeProvider implements org.forgerock.openam.auth.node.api.OutcomeProvider {
+
         @Override
         public List<Outcome> getOutcomes(PreferredLocales locales, JsonValue nodeAttributes) {
             ResourceBundle bundle = locales.getBundleInPreferredLocale(XignPushResult.BUNDLE,

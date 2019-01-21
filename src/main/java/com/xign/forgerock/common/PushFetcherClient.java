@@ -5,8 +5,6 @@
  */
 package com.xign.forgerock.common;
 
-import static com.xign.forgerock.common.Util.XIGN_POLL_ID;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -43,17 +41,19 @@ public class PushFetcherClient {
     private final X509Certificate trustCert;
     private final boolean isSSL;
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(PushFetcherClient.class.getName());
+    private static final String XIGN_POLL_ID = "pollId";
 
     private final JsonParser PARSER = new JsonParser();
 
     /**
      *
      * @param pin The InputStream for contents of properties file
-     * @param httpsTrust Optional trusted certificate, if remote server has self-signed certificate
+     * @param httpsTrust Optional trusted certificate, if remote server has
+     * self-signed certificate
      * @throws XignTokenException
      */
     public PushFetcherClient(InputStream pin, X509Certificate httpsTrust) throws XignTokenException {
-        
+
         // read and load properties configured in node settings
         Properties properties = new Properties();
         try {
@@ -123,7 +123,8 @@ public class PushFetcherClient {
     }
 
     /**
-     * Requests the authentication, triggered by Push message to registered device
+     * Requests the authentication, triggered by Push message to registered
+     * device
      *
      * @param userid The username collected by XignPushRequestPlugin
      * @param uiselector The attributes, that are requested from XignQR System
@@ -154,6 +155,7 @@ public class PushFetcherClient {
             o.addProperty("signature", signature);
 
             String result = sendMessage(o, endpoint.toString());
+            LOG.info("received:\n" + result);
             assert result != null;
             resultObject = PARSER.parse(result).getAsJsonObject();
 
@@ -175,10 +177,9 @@ public class PushFetcherClient {
      * @param pollId
      * @return decrypted and verified JWTClaims returned by XignQR System
      */
-    public JWTClaims pollForResult(String pollId) throws NodeProcessException {
+    public PollResult pollForResult(String pollId) throws NodeProcessException {
 
         JsonObject result;
-        JWTClaims claims = null;
 
         //TODO This method should not poll for result, but should just return whether or not the end user
         // successfully authenticated, failed to authenticate, or has not yet answered. If the user successfully
@@ -192,13 +193,15 @@ public class PushFetcherClient {
         } catch (CertificateException | NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
             throw new NodeProcessException(e);
         }
+
         LOG.debug("received response from server: " + response);
         result = new JsonParser().parse(response).getAsJsonObject();
 
-        if (result.get("session-state").getAsString().equals("finished")) {
-
-            String authState = result.get("status").getAsString();
-            if (authState.equals("authentication-success")) {
+        String authState = null;
+        JWTClaims claims = null;
+        if (result.get("session-state").getAsString().equals(PollResult.SESSION_STATE_FINISHED)) {
+            authState = result.get("status").getAsString();
+            if (authState.equals(PollResult.AUTHENTICATION_SUCCESS)) {
                 LOG.info("received authentication-success");
                 JsonObject tokenResponse = result.getAsJsonObject("result");
 
@@ -208,10 +211,9 @@ public class PushFetcherClient {
                     throw new NodeProcessException(ex);
                 }
             }
-            return claims;
-
         }
-        return null;
+
+        return new PollResult(result.get("session-state").getAsString(), authState, claims);
     }
 
     private HttpURLConnection makeConnection(String url) throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, KeyManagementException, URISyntaxException, NoSuchProviderException {

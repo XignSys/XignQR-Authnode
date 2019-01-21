@@ -27,17 +27,21 @@ import org.apache.http.impl.client.LaxRedirectStrategy;
 public class PropertiesFactory {
 
     private static Properties properties;
-
     private static String xignInScript;
+    private static ByteArrayOutputStream outputStream;
 
     public static Properties getProperties(String path) throws FileNotFoundException, IOException {
         return loadProperties(path);
     }
 
     public static InputStream getPropertiesAsInputStream(String path) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        loadProperties(path).store(out, "");
-        return new ByteArrayInputStream(out.toByteArray());
+        
+        if (outputStream == null) {
+            outputStream = new ByteArrayOutputStream();
+            loadProperties(path).store(outputStream, "");
+        }
+
+        return new ByteArrayInputStream(outputStream.toByteArray());
     }
 
     public static String getScript(String managerUrl, String redirectUri, String clientId) throws IOException {
