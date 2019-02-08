@@ -56,11 +56,16 @@ After Registration, select your newly created client and use the controls to dow
 Place the downloaded Properties on the filesystem of your OpenAM Installtion and provide the path in the configuration of the auth node. And map the attributes that should be matched.
 
 **Example XignQR**
-![ScreenShot](./images/forgerock_qr_tree_nodes.png)
+This is the straight forward configuration for the use of _XignQR for MFA_
+![ScreenShot](./images/forgrerock_qr_tree_nodes.png)
+
+Via the drop-down mapping menu, you will be able to configure, which data, which is delievered from the XignQR-System, should match the identity attributes in your identity repository.
 
 **Example XignPush**
+This is the __recommended__ configuration for _XignQR as a Second Factor_. This type  of configuration prevents spamming arbitrary users with Push-Authentication requests, since the password has to be correct to trigger a push notification.
 ![ScreenShot](./images/forgerock_push_tree_nodes.png)
 
+Via the drop-down mapping menu, you will be able to configure, which data, which is delievered from the XignQR-System, should match the identity attributes in your identity repository.
 
 # Authentication
 **XignQR**
@@ -83,14 +88,24 @@ if not you'll be prompted to enter your personal PIN.
 
 **XignPush**
 
-When using XignPush you'll have to enter your XignQR username to be able to log in. 
+When using XignPush you'll have to enter your XignQR username or email (depends on mapping) to be able to log in. 
 
-<img src="./images/login_xignpush.png"/>
+<img src="./images/forgerock_user_name.png"/>
+
+After that enter your password for your identity.
+
+<img src="./images/forgerock_password.png"/>
+
+You will see, that openam is waiting for the authentication response from xignqr.
+
+<img src="./images/forgerock_push_waiting.png"/>
 
 The XignQR system will deliver a push notification to your device. When you press on the notification, the XignQR app will open up.
 And the flow will be similar to that of using XignQR.
 
 <img src="./images/push_notification.jpg" width="300px"/>
+
+If you open up the notification, the authentication procedure will start, afterwards you'll be logged into your account.
 
 
 [forgerock_platform]: https://www.forgerock.com/platform/  
