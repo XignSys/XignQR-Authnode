@@ -56,10 +56,10 @@ After Registration, select your newly created client and use the controls to dow
 Place the downloaded Properties on the filesystem of your OpenAM Installtion and provide the path in the configuration of the auth node. And map the attributes that should be matched.
 
 **Example XignQR**
-![ScreenShot](./images/configure_xignqr.png)
+![ScreenShot](./images/forgerock_qr_tree_nodes.png)
 
 **Example XignPush**
-![ScreenShot](./images/configure_xignpush.png)
+![ScreenShot](./images/forgerock_push_tree_nodes.png)
 
 
 # Authentication
