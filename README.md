@@ -58,6 +58,7 @@ Place the downloaded Properties on the filesystem of your OpenAM Installtion and
 **Example XignQR**
 
 This is the straight forward configuration for the use of _XignQR for MFA_
+
 ![ScreenShot](./images/forgrerock_qr_tree_nodes.png)
 
 Via the drop-down mapping menu, you will be able to configure, which data, which is delievered from the XignQR-System, should match the identity attributes in your identity repository.
@@ -65,6 +66,7 @@ Via the drop-down mapping menu, you will be able to configure, which data, which
 **Example XignPush**
 
 This is the __recommended__ configuration for _XignQR as a Second Factor_. This type  of configuration prevents spamming arbitrary users with Push-Authentication requests, since the password has to be correct to trigger a push notification.
+
 ![ScreenShot](./images/forgerock_push_tree_nodes.png)
 
 Via the drop-down mapping menu, you will be able to configure, which data, which is delievered from the XignQR-System, should match the identity attributes in your identity repository.
