@@ -111,7 +111,7 @@ And the flow will be similar to that of using XignQR.
 
 If you open up the notification, the authentication procedure will start, afterwards you'll be logged into your mapped account.
 
-<img src="./images/forgerock_profile.jpg" width="300px"/>
+<img src="./images/forgerock_profile.png" width="300px"/>
 
 [forgerock_platform]: https://www.forgerock.com/platform/  
 
