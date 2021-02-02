@@ -13,11 +13,8 @@
  *
  * Copyright 2018 ForgeRock AS.
  */
-package com.xign.forgerock;
+package com.xignsys.forgerock;
 
-import com.xign.forgerock.xignpush.result.XignPushResult;
-import com.xign.forgerock.xignpush.request.XignPushRequest;
-import com.xign.forgerock.xignqr.XignAuthNode;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -60,12 +57,11 @@ import org.forgerock.openam.plugins.PluginException;
  * for shutdown.
  * </p>
  *
- * @supported.all.api
  * @since AM 5.5.0
  */
 public class XignNodePlugin extends AbstractNodeAmPlugin {
 
-    static private String currentVersion = "1.0.0";
+    static private final String currentVersion = "1.0.0";
 
     /**
      * Specify the Map of list of node classes that the plugin is providing.
@@ -76,8 +72,8 @@ public class XignNodePlugin extends AbstractNodeAmPlugin {
      */
     @Override
     protected Map<String, Iterable<? extends Class<? extends Node>>> getNodesByVersion() {
-        return Collections.singletonMap(XignNodePlugin.currentVersion,
-                Arrays.asList(XignAuthNode.class, XignPushResult.class, XignPushRequest.class));
+        return Collections.singletonMap(currentVersion,
+                Arrays.asList(XignAuthNode.class));
 
     }
 
@@ -94,21 +90,6 @@ public class XignNodePlugin extends AbstractNodeAmPlugin {
         super.onInstall();
     }
 
-    /**
-     * Handle plugin startup. This method will be called every time AM starts,
-     * after {@link #onInstall()},
-     * {@link #onAmUpgrade(String, String)} and {@link #upgrade(String)} have
-     * been called (if relevant).
-     *
-     * No need to implement this unless your AuthNode has specific requirements
-     * on startup.
-     *
-     * @param startupType The type of startup that is taking place.
-     */
-    @Override
-    public void onStartup() throws PluginException {
-        super.onStartup();
-    }
 
     /**
      * This method will be called when the version returned by
@@ -122,7 +103,8 @@ public class XignNodePlugin extends AbstractNodeAmPlugin {
      */
     @Override
     public void upgrade(String fromVersion) throws PluginException {
-        super.upgrade(fromVersion);
+        System.out.println("upgrading from version "+fromVersion);
+        pluginTools.upgradeAuthNode(XignAuthNode.class);
     }
 
     /**
@@ -135,6 +117,6 @@ public class XignNodePlugin extends AbstractNodeAmPlugin {
      */
     @Override
     public String getPluginVersion() {
-        return XignNodePlugin.currentVersion;
+        return currentVersion;
     }
 }
