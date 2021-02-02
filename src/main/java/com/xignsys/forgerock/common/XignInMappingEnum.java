@@ -3,15 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.xign.forgerock.common;
+package com.xignsys.forgerock.common;
 
 /**
  *
- * @author palle
+ * @author peterchenfrost
  */
-public class XignTokenException extends Exception {
-
-    public XignTokenException(String message) {
-        super(message);
-    }
+public enum XignInMappingEnum {
+    PREFERRED_USERNAME, EMAIL, FAMILY_NAME
 }
