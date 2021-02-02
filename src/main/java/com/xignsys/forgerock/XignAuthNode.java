@@ -22,9 +22,8 @@ import com.sun.identity.authentication.callbacks.HiddenValueCallback;
 import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
 import com.sun.identity.idm.AMIdentity;
 import com.xignsys.forgerock.common.ForgerockMappingEnum;
-import com.xignsys.forgerock.common.Pair;
-import com.xignsys.forgerock.common.XignInMappingEnum;
 import com.xignsys.forgerock.common.Util;
+import com.xignsys.forgerock.common.XignInMappingEnum;
 import com.xignsys.xignin.exception.XignInException;
 import com.xignsys.xignin.exception.XignTokenException;
 import com.xignsys.xignin.service.TokenFetcherClient;
@@ -42,10 +41,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.security.auth.callback.Callback;
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.forgerock.openam.auth.node.api.Action.send;
 
@@ -133,19 +129,10 @@ public class XignAuthNode extends AbstractDecisionNode {
                 // send callbacks?
             }
 
-            LOG.info("troken response retrieved ... mapping identity");
+            LOG.info("token response retrieved ... mapping identity");
             String mappingName = config.mapping().name();
-            AtomicReference<String> claim = new AtomicReference<>();
-            claims.getClaims().forEach((k, v) -> {
-                if (mappingName.toLowerCase().equals(k)) {
-                    LOG.debug("mapping {} with value {}", mappingName, v);
-                    claim.set((String) v);
-                }
-            });
-
-            // loop through claims and choose according to mapping
-
-            AMIdentity id = Util.getIdentity(config.forgerockMapping().name(), claim.get(), context);
+            String claim = (String) claims.getClaim(mappingName.toLowerCase());
+            AMIdentity id = Util.getIdentity(config.forgerockMapping().name(), claim, context);
 
             LOG.info("making authentication decision ...");
             return makeDecision(id, context);
