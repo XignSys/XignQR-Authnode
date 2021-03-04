@@ -15,19 +15,27 @@
  */
 package com.xignsys.forgerock;
 
-import com.google.common.collect.ImmutableList;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.assistedinject.Assisted;
+import com.iplanet.sso.SSOException;
 import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.sun.identity.authentication.callbacks.HiddenValueCallback;
 import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
+import com.sun.identity.authentication.internal.InvalidAuthContextException;
 import com.sun.identity.idm.AMIdentity;
+import com.sun.identity.idm.IdRepoException;
+import com.xignsys.forgerock.common.Constants;
 import com.xignsys.forgerock.common.ForgerockMappingEnum;
+import com.xignsys.forgerock.common.MobileAppData;
 import com.xignsys.forgerock.common.Util;
 import com.xignsys.forgerock.common.XignInMappingEnum;
-import com.xignsys.xignin.exception.XignInException;
-import com.xignsys.xignin.exception.XignTokenException;
-import com.xignsys.xignin.service.TokenFetcherClient;
-import com.xignsys.xignin.service.TokenFetcherClientBuilder;
+
+import com.xignsys.xignin.client.XignInClient;
+import com.xignsys.xignin.client.XignInClientException;
+import com.xignsys.xignin.client.XignInProperties;
+import com.xignsys.xignin.client.XignInPropertiesException;
 import org.forgerock.json.JsonValue;
 import org.forgerock.openam.annotations.sm.Attribute;
 import org.forgerock.openam.auth.node.api.AbstractDecisionNode;
@@ -40,7 +48,17 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.TextOutputCallback;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.forgerock.openam.auth.node.api.Action.send;
@@ -51,7 +69,7 @@ public class XignAuthNode extends AbstractDecisionNode {
 
     private final Config config;
     private final Logger LOG = LoggerFactory.getLogger(XignAuthNode.class);
-    private final String redirectUri, clientId, managerBaseUrl;
+    private final XignInProperties properties;
 
     /**
      * Configuration for the node.
@@ -59,22 +77,21 @@ public class XignAuthNode extends AbstractDecisionNode {
     public interface Config {
 
         @Attribute(order = 100)
-        String baseUrl();
-
-        @Attribute(order = 300)
-        String redirectUri();
+        String jsonConfig();
 
         @Attribute(order = 200)
-        String clientId();
-
-        @Attribute(order = 400)
         default XignInMappingEnum mapping() {
             return XignInMappingEnum.PREFERRED_USERNAME;
         }
 
-        @Attribute(order = 500)
+        @Attribute(order = 300)
         default ForgerockMappingEnum forgerockMapping() {
             return ForgerockMappingEnum.USERNAME;
+        }
+
+        @Attribute(order = 400)
+        default boolean createUserIfNotExists() {
+            return false;
         }
 
     }
@@ -88,16 +105,41 @@ public class XignAuthNode extends AbstractDecisionNode {
     @Inject
     public XignAuthNode(@Assisted Config config) throws NodeProcessException {
         this.config = config;
-        this.clientId = config.clientId();
-        this.redirectUri = config.redirectUri();
-        this.managerBaseUrl = config.baseUrl();
+        try {
+            this.properties = Util.loadProperties(config.jsonConfig());
+        } catch (XignInPropertiesException e) {
+            throw new NodeProcessException(e);
+        }
     }
 
     @Override
     public Action process(TreeContext context) throws NodeProcessException {
+
+        Map<String, Collection<String>> headers = context.request.headers.asMap();
+        headers.forEach((k, v) -> {
+            LOG.debug("#######");
+            LOG.debug(k.toUpperCase());
+            v.forEach(LOG::debug);
+            LOG.debug("#######");
+        });
+        boolean isInAppHeaderPresent = headers.containsKey("x-request-source");
+        String inAppHeader = null;
+        if (isInAppHeaderPresent) {
+            LOG.debug("x-request-source is present in request");
+            inAppHeader = headers.get("x-request-source").stream().findFirst().get();
+        }
+
         String xignInScript = null;
+        URI url = properties.getTokenUri();
+        String managerBaseUrl =
+                url.getScheme() + "://" + url.getHost() + (url.getPort() == -1 ? "" : ":" + url.getPort());
         try {
-            xignInScript = Util.loadTemplateFile(managerBaseUrl, clientId, redirectUri);
+
+            xignInScript = Util.loadTemplateFile(
+                    managerBaseUrl,
+                    properties.getClientId(),
+                    properties.getRedirectUri().toString()
+            );
         } catch (IOException ex) {
             throw new NodeProcessException("error loading script from xign manager");
         }
@@ -114,25 +156,24 @@ public class XignAuthNode extends AbstractDecisionNode {
             // fetch token, decrypt and validate
             LOG.info("retrieving token response");
             JWTClaimsSet claims;
+
             try {
                 // minimal required settings => no encryption, since no clientKeys given
-                TokenFetcherClient tfc = new TokenFetcherClientBuilder()
-                        .metaDataUrl(managerBaseUrl + "/openid/.well-known/openid-configuration")
-                        .clientId(clientId)
-                        .redirectUri(redirectUri)
-                        .secret("supersecret").build();
-
+                XignInClient tfc = new XignInClient(properties);
                 claims = tfc.requestIdToken(code);
-            } catch (XignInException | XignTokenException ex) {
+            } catch (XignInClientException ex) {
                 LOG.error("error retrieving token response", ex);
                 throw new NodeProcessException("error fetching IdToken");
-                // send callbacks?
             }
 
             LOG.info("token response retrieved ... mapping identity");
             String mappingName = config.mapping().name();
             String claim = (String) claims.getClaim(mappingName.toLowerCase());
             AMIdentity id = Util.getIdentity(config.forgerockMapping().name(), claim, context);
+
+            if (id == null && config.createUserIfNotExists()) { // dynamic provisioning must be present
+
+            }
 
             LOG.info("making authentication decision ...");
             return makeDecision(id, context);
@@ -142,7 +183,27 @@ public class XignAuthNode extends AbstractDecisionNode {
                     = new ScriptTextOutputCallback(xignInScript);
 
             HiddenValueCallback hiddenValueCallback = new HiddenValueCallback("code");
-            ImmutableList<Callback> callbacks = ImmutableList.of(scriptCallback, hiddenValueCallback);
+            List<Callback> callbacks = Arrays.asList(scriptCallback, hiddenValueCallback);
+
+            if (Constants.REQUEST_SOURCE_APP.equals(inAppHeader)) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                MobileAppData mobileAppData = new MobileAppData(
+                        managerBaseUrl,
+                        properties.getClientId(),
+                        properties.getRedirectUri().toString(),
+                        headers.get("referer").stream().findFirst().get()
+                );
+                TextOutputCallback textOutputCallback = null;
+                try {
+                    textOutputCallback = new TextOutputCallback(
+                            TextOutputCallback.INFORMATION,
+                            objectMapper.writeValueAsString(mobileAppData)
+                    );
+                } catch (JsonProcessingException e) {
+                    throw new NodeProcessException(e);
+                }
+                callbacks.add(textOutputCallback);
+            }
 
             return send(callbacks).build();
         }
@@ -151,12 +212,36 @@ public class XignAuthNode extends AbstractDecisionNode {
 
     private Action makeDecision(AMIdentity id, TreeContext context) {
         if (id != null) { // exists, login user
+
+            // necessary if dynamic provisioning node not present
             JsonValue newSharedState = context.sharedState.copy();
             newSharedState.put("username", id.getName());
+
+            // if dynamic provisioning active
+//            HashMap<String, ArrayList<String>> attr = new HashMap<>();
+//            attr.put("mail", addAttribute(id.getName()));
+//            attr.put("uid", addAttribute(id.getName()));
+//
+//            HashMap<String, ArrayList<String>> userNamesparameters = new HashMap<>();
+//            userNamesparameters.put("username", addAttribute(id.getName()));
+//
+//            newSharedState.put("userInfo", JsonValue.json(
+//                    JsonValue.object(
+//                            JsonValue.field("attributes",attr),
+//                            JsonValue.field("userNames", userNamesparameters)
+//                    )
+//            ));
+
             return goTo(true).replaceSharedState(newSharedState).build();
         } else {
             LOG.debug("could not find user ... ");
             return goTo(false).build();
         }
+    }
+
+    private ArrayList<String> addAttribute(String attribute){
+        ArrayList<String> arr = new ArrayList<>();
+        arr.add(attribute);
+        return arr;
     }
 }
