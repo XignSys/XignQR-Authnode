@@ -28,7 +28,4 @@ loginDiv.setAttribute("id", "login");
 loginDiv.style.width="400px";
 loginDiv.style.margin="auto";
 
-let contentDiv = document.body.querySelector("#content");
-let containerDiv = contentDiv.querySelector(".container");
-
-contentDiv.insertBefore(loginDiv,containerDiv);
+document.body.querySelector("#content").insertBefore(loginDiv,document.body.querySelector("#content").querySelector(".container"));

@@ -61,7 +61,7 @@ import org.forgerock.openam.plugins.PluginException;
  */
 public class XignNodePlugin extends AbstractNodeAmPlugin {
 
-    static private final String currentVersion = "9.0.0";
+    static private final String currentVersion = "10.0.0";
 
     /**
      * Specify the Map of list of node classes that the plugin is providing.

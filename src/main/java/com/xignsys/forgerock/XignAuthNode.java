@@ -61,11 +61,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.forgerock.openam.auth.node.api.Action.goTo;
 import static org.forgerock.openam.auth.node.api.Action.send;
 
-@Node.Metadata(outcomeProvider = AbstractDecisionNode.OutcomeProvider.class,
+@Node.Metadata(outcomeProvider = XignInOutcomeProvider.class,
         configClass = XignAuthNode.Config.class)
-public class XignAuthNode extends AbstractDecisionNode {
+public class XignAuthNode implements Node {
 
     private final Config config;
     private final Logger LOG = LoggerFactory.getLogger(XignAuthNode.class);
@@ -116,12 +117,6 @@ public class XignAuthNode extends AbstractDecisionNode {
     public Action process(TreeContext context) throws NodeProcessException {
 
         Map<String, Collection<String>> headers = context.request.headers.asMap();
-        headers.forEach((k, v) -> {
-            LOG.debug("#######");
-            LOG.debug(k.toUpperCase());
-            v.forEach(LOG::debug);
-            LOG.debug("#######");
-        });
         boolean isInAppHeaderPresent = headers.containsKey("x-request-source");
         String inAppHeader = null;
         if (isInAppHeaderPresent) {
@@ -150,7 +145,7 @@ public class XignAuthNode extends AbstractDecisionNode {
             // authorization code passed as query parameter, get it from redirect uri
             LOG.debug("received submit with code: {}", code);
             if (code == null) {
-                return goTo(false).build();
+                return goTo(XignInOutcomeProvider.XignInOutcomes.FAILURE.name()).build();
             }
 
             // fetch token, decrypt and validate
@@ -158,7 +153,6 @@ public class XignAuthNode extends AbstractDecisionNode {
             JWTClaimsSet claims;
 
             try {
-                // minimal required settings => no encryption, since no clientKeys given
                 XignInClient tfc = new XignInClient(properties);
                 claims = tfc.requestIdToken(code);
             } catch (XignInClientException ex) {
@@ -172,7 +166,22 @@ public class XignAuthNode extends AbstractDecisionNode {
             AMIdentity id = Util.getIdentity(config.forgerockMapping().name(), claim, context);
 
             if (id == null && config.createUserIfNotExists()) { // dynamic provisioning must be present
+                HashMap<String, ArrayList<String>> attr = new HashMap<>();
+                attr.put("mail", addAttribute(claim));
+                attr.put("uid", addAttribute(claim));
 
+                HashMap<String, ArrayList<String>> userNamesparameters = new HashMap<>();
+                userNamesparameters.put("username", addAttribute(claim));
+
+                JsonValue newSharedState = context.sharedState.copy();
+                newSharedState.put("userInfo", JsonValue.json(
+                        JsonValue.object(
+                                JsonValue.field("attributes", attr),
+                                JsonValue.field("userNames", userNamesparameters)
+                        )
+                ));
+
+                return goTo(XignInOutcomeProvider.XignInOutcomes.NO_ACCOUNT.name()).replaceSharedState(newSharedState).build();
             }
 
             LOG.info("making authentication decision ...");
@@ -216,26 +225,10 @@ public class XignAuthNode extends AbstractDecisionNode {
             // necessary if dynamic provisioning node not present
             JsonValue newSharedState = context.sharedState.copy();
             newSharedState.put("username", id.getName());
-
-            // if dynamic provisioning active
-//            HashMap<String, ArrayList<String>> attr = new HashMap<>();
-//            attr.put("mail", addAttribute(id.getName()));
-//            attr.put("uid", addAttribute(id.getName()));
-//
-//            HashMap<String, ArrayList<String>> userNamesparameters = new HashMap<>();
-//            userNamesparameters.put("username", addAttribute(id.getName()));
-//
-//            newSharedState.put("userInfo", JsonValue.json(
-//                    JsonValue.object(
-//                            JsonValue.field("attributes",attr),
-//                            JsonValue.field("userNames", userNamesparameters)
-//                    )
-//            ));
-
-            return goTo(true).replaceSharedState(newSharedState).build();
+            return goTo(XignInOutcomeProvider.XignInOutcomes.SUCCESS.name()).replaceSharedState(newSharedState).build();
         } else {
             LOG.debug("could not find user ... ");
-            return goTo(false).build();
+            return goTo(XignInOutcomeProvider.XignInOutcomes.FAILURE.name()).build();
         }
     }
 
