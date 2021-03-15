@@ -18,27 +18,21 @@ package com.xignsys.forgerock;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.assistedinject.Assisted;
-import com.iplanet.sso.SSOException;
 import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.sun.identity.authentication.callbacks.HiddenValueCallback;
 import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
-import com.sun.identity.authentication.internal.InvalidAuthContextException;
 import com.sun.identity.idm.AMIdentity;
-import com.sun.identity.idm.IdRepoException;
 import com.xignsys.forgerock.common.Constants;
 import com.xignsys.forgerock.common.ForgerockMappingEnum;
 import com.xignsys.forgerock.common.MobileAppData;
 import com.xignsys.forgerock.common.Util;
 import com.xignsys.forgerock.common.XignInMappingEnum;
-
 import com.xignsys.xignin.client.XignInClient;
 import com.xignsys.xignin.client.XignInClientException;
 import com.xignsys.xignin.client.XignInProperties;
 import com.xignsys.xignin.client.XignInPropertiesException;
 import org.forgerock.json.JsonValue;
 import org.forgerock.openam.annotations.sm.Attribute;
-import org.forgerock.openam.auth.node.api.AbstractDecisionNode;
 import org.forgerock.openam.auth.node.api.Action;
 import org.forgerock.openam.auth.node.api.Node;
 import org.forgerock.openam.auth.node.api.NodeProcessException;
@@ -50,14 +44,13 @@ import javax.inject.Inject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.TextOutputCallback;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -149,7 +142,7 @@ public class XignAuthNode implements Node {
             }
 
             // fetch token, decrypt and validate
-            LOG.info("retrieving token response");
+            LOG.debug("retrieving token response");
             JWTClaimsSet claims;
 
             try {
@@ -160,14 +153,45 @@ public class XignAuthNode implements Node {
                 throw new NodeProcessException("error fetching IdToken");
             }
 
-            LOG.info("token response retrieved ... mapping identity");
+            LOG.debug("token response retrieved ... mapping identity");
             String mappingName = config.mapping().name();
             String claim = (String) claims.getClaim(mappingName.toLowerCase());
+
+            //  search in Forgerock database for user with mapping attribute set to claim value
             AMIdentity id = Util.getIdentity(config.forgerockMapping().name(), claim, context);
 
-            if (id == null && config.createUserIfNotExists()) { // dynamic provisioning must be present
+            if (id == null && config.createUserIfNotExists()) { // Provision Dynamic Account node must be present
                 HashMap<String, ArrayList<String>> attr = new HashMap<>();
-                attr.put("mail", addAttribute(claim));
+
+                // if email is set in claims, set email for the user that will be created
+                if (claims.getClaims().containsKey(XignInMappingEnum.EMAIL.name().toLowerCase(Locale.ROOT))) {
+                    attr.put("mail",
+                             addAttribute((String) claims.getClaims()
+                                                         .get(XignInMappingEnum.EMAIL.name().toLowerCase(Locale.ROOT)))
+                    );
+                }
+
+                if(claims.getClaims().containsKey("given_name")){
+                    attr.put("givenName",
+                             addAttribute((String) claims.getClaims()
+                                                         .get("given_name"))
+                    );
+                }
+
+                if(claims.getClaims().containsKey("family_name")){
+                    attr.put("sn",
+                             addAttribute((String) claims.getClaims()
+                                                         .get("family_name"))
+                    );
+                }
+
+                if(claims.getClaims().containsKey("phone_number")){
+                    attr.put("telephoneNumber",
+                             addAttribute((String) claims.getClaims()
+                                                         .get("phone_number"))
+                    );
+                }
+
                 attr.put("uid", addAttribute(claim));
 
                 HashMap<String, ArrayList<String>> userNamesparameters = new HashMap<>();
@@ -181,19 +205,25 @@ public class XignAuthNode implements Node {
                         )
                 ));
 
-                return goTo(XignInOutcomeProvider.XignInOutcomes.NO_ACCOUNT.name()).replaceSharedState(newSharedState).build();
+                return goTo(XignInOutcomeProvider.XignInOutcomes.NO_ACCOUNT.name()).replaceSharedState(newSharedState)
+                                                                                   .build();
             }
 
-            LOG.info("making authentication decision ...");
+            LOG.debug("making authentication decision ...");
             return makeDecision(id, context);
 
         } else {
+
+            // attach login.js script to callback to show the qrcode on login page
             ScriptTextOutputCallback scriptCallback
                     = new ScriptTextOutputCallback(xignInScript);
 
+            // to be able to retrieve the code from hidden value field,
+            // when login page is submitted after response from xign in is received
             HiddenValueCallback hiddenValueCallback = new HiddenValueCallback("code");
             List<Callback> callbacks = Arrays.asList(scriptCallback, hiddenValueCallback);
 
+            // when in app header is present in request, provide app with necessary information
             if (Constants.REQUEST_SOURCE_APP.equals(inAppHeader)) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 MobileAppData mobileAppData = new MobileAppData(
@@ -221,7 +251,7 @@ public class XignAuthNode implements Node {
 
     private Action makeDecision(AMIdentity id, TreeContext context) {
         if (id != null) { // exists, login user
-
+            LOG.debug("authenticating user {}", id.getName());
             // necessary if dynamic provisioning node not present
             JsonValue newSharedState = context.sharedState.copy();
             newSharedState.put("username", id.getName());
@@ -232,7 +262,7 @@ public class XignAuthNode implements Node {
         }
     }
 
-    private ArrayList<String> addAttribute(String attribute){
+    private ArrayList<String> addAttribute(String attribute) {
         ArrayList<String> arr = new ArrayList<>();
         arr.add(attribute);
         return arr;
