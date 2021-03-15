@@ -116,7 +116,7 @@ Open up your personalized XignIn App and scan the displayed qr code with the int
 After scanning the qr code, the app gives a haptic feedback, and you'll see that the app communicates with the XignIn
 backend system. You'll be prompted to accept or decline the delivery of the displayed attributes to openam.
 
-<div style="width:50%;">
+<div style="width:250px;">
 ![ScreenShot](./images/prompt_attributes.png)
 </div>
 
