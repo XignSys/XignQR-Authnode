@@ -122,8 +122,6 @@ After you have accepted the delivery of the attributes, you'll be prompted to au
 App. If you have configured a fingerprint when you personalized your device, you'll be prompted for fingerprint
 authentication, if not you'll be prompted to enter your personal PIN.
 
-![ScreenShot](./images/prompt_authfactor.jpg)
-
 
 [forgerock_platform]: https://www.forgerock.com/platform/  
 
